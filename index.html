@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NutriChef AI | Cook what you have. Eat what you need.</title>
+    <meta name="description" content="NutriChef AI turns the food already in your kitchen into recipes that fit your nutrition goals." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Reenie+Beanie&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="preload" as="image" href="/images/hero-bowl.webp" />
+    <script>
+      // Set the theme before first paint so there is no flash of the wrong mode.
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('nc-theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = document.documentElement.dataset.theme;
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

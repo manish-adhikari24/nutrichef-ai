@@ -1,0 +1,86 @@
+/* NutriChef AI design tokens.
+   Palette named after the kitchen: rice paper, peppercorn, beetroot, herb, saffron. */
+:root {
+  --paper: #f2f3ec;      /* rice paper: page background */
+  --paper-2: #e6e8de;    /* slightly deeper surface */
+  --surface: #fbfbf7;    /* raised panels (app mockups, journal pages) */
+  --ink: #1c1a17;        /* peppercorn: body text */
+  --ink-2: #55524a;      /* secondary text */
+  --beet: #8c1d47;       /* beetroot: brand primary */
+  --beet-hover: #74163a;
+  --on-beet: #ffffff;
+  --herb: #2e6b4a;       /* herb: handwritten notes, success */
+  --saffron: #e9a825;    /* saffron: highlights, the AI spark */
+  --danger: #b42318;
+  --line: rgba(28, 26, 23, 0.16);
+  --line-strong: rgba(28, 26, 23, 0.32);
+
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-hand: 'Reenie Beanie', 'Comic Sans MS', cursive;
+
+  /* Type scale: a 1.25 ratio for UI, larger steps for display. */
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5625rem;
+  --step-3: clamp(2rem, 1.4rem + 2.6vw, 3.25rem);
+  --step-4: clamp(2.6rem, 1.6rem + 4.4vw, 5rem);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 72px;
+  --space-8: 112px;
+
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-pill: 999px;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+
+  --header-h: 72px;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --paper: #16121a;      /* aubergine night */
+  --paper-2: #211b26;
+  --surface: #241d29;
+  --ink: #f0ebe4;
+  --ink-2: #b9b0b5;
+  --beet: #e5729a;
+  --beet-hover: #ee8fb0;
+  --on-beet: #16121a;
+  --herb: #86c9a1;
+  --saffron: #f3c04f;
+  --danger: #ff8a7a;
+  --line: rgba(240, 235, 228, 0.16);
+  --line-strong: rgba(240, 235, 228, 0.34);
+  color-scheme: dark;
+}
+
+/* Follow the system setting when nothing has chosen a theme explicitly. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #16121a;      /* aubergine night */
+    --paper-2: #211b26;
+    --surface: #241d29;
+    --ink: #f0ebe4;
+    --ink-2: #b9b0b5;
+    --beet: #e5729a;
+    --beet-hover: #ee8fb0;
+    --on-beet: #16121a;
+    --herb: #86c9a1;
+    --saffron: #f3c04f;
+    --danger: #ff8a7a;
+    --line: rgba(240, 235, 228, 0.16);
+    --line-strong: rgba(240, 235, 228, 0.34);
+    color-scheme: dark;
+  }
+}
