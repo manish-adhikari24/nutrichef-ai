@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Egg, Lemon, Leaf, Whisk, Pan, NoteArrow } from '../components/Doodles.jsx';
+import { Egg, Lemon, Pan } from '../components/Doodles.jsx';
 import AppMock from '../components/AppMock.jsx';
 import SignupBand from '../components/SignupBand.jsx';
 import { img } from '../img.js';
@@ -57,29 +57,24 @@ export default function Home() {
         <p className="hero-kicker">The smart recipe generator</p>
 
         <div className="hero-stage">
-          <h1 id="hero-title" className="hero-word">
-            <span>Nutri</span>
-            <span>Chef</span>
-            <span className="visually-hidden"> AI, the smart recipe generator</span>
-          </h1>
-          <img
-            className="hero-bowl"
-            src={img('hero-bowl.webp')}
-            alt="A bowl of roasted tofu, egg, edamame, sweetcorn, cucumber and red cabbage"
-            width="760"
-            height="760"
-            fetchPriority="high"
-          />
-
-          <span className="note note-a">2 eggs, ½ avocado</span>
-          <NoteArrow variant={1} className="note-arrow arrow-a" />
-          <span className="note note-b">38 g protein</span>
-          <NoteArrow variant={2} flip className="note-arrow arrow-b" />
-          <span className="note note-c">swap feta for tofu?</span>
-          <span className="note note-d">ready in 15 min</span>
-          <NoteArrow variant={3} className="note-arrow arrow-d" />
-          <Leaf className="doodle hero-doodle doodle-1" />
-          <Whisk className="doodle hero-doodle doodle-2" />
+          <div className="hero-layout">
+            <h1 id="hero-title" className="hero-word">
+              <span>Nutri</span>
+              <span>Chef</span>
+              <span className="visually-hidden"> AI, the smart recipe generator</span>
+            </h1>
+            <div className="hero-plate">
+              <img
+                className="hero-bowl"
+                src={img('hero-bowl.webp')}
+                alt="A bowl of roasted tofu, egg, edamame, sweetcorn, cucumber and red cabbage"
+                width="760"
+                height="760"
+                fetchPriority="high"
+              />
+              <span className="hero-sticker" aria-hidden="true">ai</span>
+            </div>
+          </div>
         </div>
 
         <div className="hero-foot">

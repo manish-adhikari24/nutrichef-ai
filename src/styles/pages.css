@@ -11,42 +11,53 @@
 }
 
 .hero-kicker {
-  text-align: center;
+  padding-inline: clamp(16px, 4vw, 56px);
   font-family: var(--font-display);
   font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
   font-style: italic;
 }
 
 .hero-stage {
+  container-type: inline-size;
+}
+
+/* --u is one layout unit: 1% of the width, reduced on short screens so the
+   tagline and buttons stay in view. Everything below scales from it. */
+.hero-layout {
+  --u: min(1cqw, 1.15svh);
   position: relative;
-  margin-top: clamp(4px, 1vw, 12px);
+  height: calc(var(--u) * 52);
+  overflow: hidden;
 }
 
 .hero-word {
+  position: absolute;
+  left: 4cqw;
+  top: 50%;
+  translate: 0 -50%;
   display: flex;
   flex-direction: column;
-  align-items: center;
   font-family: var(--font-display);
   font-weight: 400;
   text-transform: uppercase;
   color: var(--beet);
-  font-size: clamp(5.4rem, 24vw, 21.5rem);
-  line-height: 0.8;
-  letter-spacing: -0.035em;
-  text-align: center;
+  font-size: calc(var(--u) * 23);
+  line-height: 0.82;
+  letter-spacing: -0.03em;
 }
 
-.hero-word span:nth-child(2) {
-  margin-top: -0.02em;
+.hero-plate {
+  position: absolute;
+  right: calc(var(--u) * -10);
+  top: 50%;
+  width: calc(var(--u) * 50);
+  aspect-ratio: 1;
+  translate: 0 -50%;
 }
 
 .hero-bowl {
-  position: absolute;
-  left: 55%;
-  top: 51%;
-  width: clamp(130px, 25vw, 340px);
+  width: 100%;
   height: auto;
-  translate: -50% -50%;
   border-radius: 50%;
   animation: bowl-in 1.2s var(--ease-out) 0.1s both;
 }
@@ -58,28 +69,33 @@
   }
 }
 
-.hero-stage .note {
+/* Stays upright and lands just after the bowl finishes turning. */
+.hero-sticker {
   position: absolute;
-  white-space: nowrap;
+  left: calc(var(--u) * -5.5);
+  top: calc(var(--u) * 16);
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 15);
+  aspect-ratio: 1;
+  border: calc(var(--u) * 0.5) solid var(--paper);
+  border-radius: 50%;
+  background: var(--beet);
+  color: var(--on-beet);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: calc(var(--u) * 9.5);
+  line-height: 1;
+  rotate: -10deg;
+  animation: sticker-in 420ms var(--ease-out) 1s both;
 }
 
-.note-a { left: 6%; top: 6%; transform: rotate(-6deg); }
-.arrow-a { position: absolute; left: 15%; top: 15%; }
-.note-b { right: 6%; top: 10%; transform: rotate(5deg); }
-.arrow-b { position: absolute; right: 18%; top: 17%; }
-.note-c { left: 5%; bottom: 10%; transform: rotate(3deg); }
-.note-d { right: 5%; bottom: 4%; transform: rotate(-4deg); }
-.arrow-d { position: absolute; right: 17%; bottom: 12%; transform: scaleX(-1); }
-
-.hero-doodle {
-  position: absolute;
-  width: clamp(36px, 4vw, 56px);
-  height: auto;
-  color: var(--ink-2);
+@keyframes sticker-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }
-
-.doodle-1 { left: 22%; bottom: 2%; transform: rotate(-12deg); }
-.doodle-2 { right: 7%; top: 40%; transform: rotate(18deg); }
 
 .hero-foot {
   text-align: center;
@@ -117,20 +133,6 @@
 }
 
 @media (max-width: 760px) {
-  .note-c,
-  .note-d,
-  .arrow-d,
-  .arrow-b,
-  .doodle-1 {
-    display: none;
-  }
-  .hero-stage .note {
-    font-size: 1.35rem;
-  }
-  .note-a { left: 3%; top: -4%; }
-  .arrow-a { display: none; }
-  .note-b { right: 3%; top: auto; bottom: -6%; }
-  .doodle-2 { right: 6%; top: 30%; }
   .hero-strip {
     display: grid;
     grid-template-columns: 1fr 1fr;
