@@ -3,6 +3,7 @@ services:
     name: nutrichef-api
     runtime: python
     plan: free
+    region: singapore
     rootDir: backend
     buildCommand: bash build.sh
     startCommand: gunicorn nutrichef.wsgi:application --workers 1 --threads 4 --timeout 120
