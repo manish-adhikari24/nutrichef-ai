@@ -54,9 +54,8 @@ export default function Home() {
     <>
       {/* Hero */}
       <section className="hero" aria-labelledby="hero-title">
-        <p className="hero-kicker">The smart recipe generator</p>
-
         <div className="hero-stage">
+          <p className="hero-kicker">The smart recipe generator</p>
           <div className="hero-layout">
             <h1 id="hero-title" className="hero-word">
               <span>Nutri</span>
@@ -74,18 +73,17 @@ export default function Home() {
               />
               <span className="hero-sticker" aria-hidden="true">ai</span>
             </div>
-          </div>
-        </div>
-
-        <div className="hero-foot">
-          <p className="hero-tagline">Cook what you have. Eat what you need.</p>
-          <div className="hero-ctas">
-            <Link to="/signup" className="btn btn-primary btn-lg">
-              Create your free account
-            </Link>
-            <Link to="/how-it-works" className="btn btn-ghost btn-lg">
-              See how it works
-            </Link>
+            <div className="hero-foot">
+              <p className="hero-tagline">Cook what you have. Eat what you need.</p>
+              <div className="hero-ctas">
+                <Link to="/signup" className="btn btn-primary btn-lg">
+                  Create your free account
+                </Link>
+                <Link to="/how-it-works" className="btn btn-ghost btn-lg">
+                  See how it works
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -10,30 +10,35 @@
   overflow: hidden;
 }
 
-.hero-kicker {
-  padding-inline: clamp(16px, 4vw, 56px);
-  font-family: var(--font-display);
-  font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
-  font-style: italic;
-}
-
 .hero-stage {
   container-type: inline-size;
 }
 
 /* --u is one layout unit: 1% of the width, reduced on short screens so the
-   tagline and buttons stay in view. Everything below scales from it. */
+   whole hero stays in view. Everything below scales from it. */
+.hero-kicker,
 .hero-layout {
   --u: min(1cqw, 1.15svh);
+  --start: 4cqw;
+}
+
+.hero-kicker {
+  padding-left: var(--start);
+  padding-right: 16px;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+  font-style: italic;
+}
+
+.hero-layout {
   position: relative;
-  height: calc(var(--u) * 52);
-  overflow: hidden;
+  padding-top: calc(var(--u) * 52);
 }
 
 .hero-word {
   position: absolute;
-  left: 4cqw;
-  top: 50%;
+  left: var(--start);
+  top: calc(var(--u) * 26);
   translate: 0 -50%;
   display: flex;
   flex-direction: column;
@@ -49,10 +54,52 @@
 .hero-plate {
   position: absolute;
   right: calc(var(--u) * -10);
-  top: 50%;
+  top: calc(var(--u) * 26);
   width: calc(var(--u) * 50);
   aspect-ratio: 1;
   translate: 0 -50%;
+}
+
+/* Large screens: tagline and buttons sit under the name, and the bowl is placed
+   from the name so the gap between them stays small at any width. It runs off
+   the edge when space is tight, and the group centres on very wide screens. */
+@media (min-width: 900px) {
+  .hero-kicker,
+  .hero-layout {
+    --u: min(1cqw, 1.2svh);
+    --start: max(4cqw, calc((100cqw - var(--u) * 134) / 2));
+  }
+  .hero-layout {
+    display: flow-root;
+    min-height: calc(var(--u) * 64);
+    padding: calc(var(--u) * 1) 0 0 var(--start);
+  }
+  .hero-word {
+    position: static;
+    translate: none;
+    font-size: calc(var(--u) * 29);
+  }
+  .hero-plate {
+    left: calc(var(--start) + var(--u) * 72);
+    right: auto;
+    top: 50%;
+    width: calc(var(--u) * 62);
+  }
+  .hero-layout .hero-sticker {
+    left: calc(var(--u) * -6);
+    top: calc(var(--u) * 22);
+  }
+  .hero-layout .hero-foot {
+    margin-top: calc(var(--u) * 2.5);
+    padding-inline: 0;
+    text-align: left;
+  }
+  .hero-layout .hero-tagline {
+    font-size: calc(var(--u) * 5);
+  }
+  .hero-layout .hero-ctas {
+    justify-content: flex-start;
+  }
 }
 
 .hero-bowl {
