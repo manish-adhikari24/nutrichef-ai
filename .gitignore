@@ -3,3 +3,9 @@ dist
 share
 .vercel
 .env*.local
+__pycache__/
+*.pyc
+backend/.venv/
+backend/db.sqlite3
+backend/.env
+backend/staticfiles/

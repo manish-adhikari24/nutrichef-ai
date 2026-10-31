@@ -1,16 +1,20 @@
 import { Link, useOutletContext } from 'react-router-dom';
 import WellnessCard from '../../components/WellnessCard.jsx';
-import { mealsOn, totalsFor } from '../../lib/api.js';
-import { suggestWellness } from '../../lib/rules.js';
+import LoadStatus from '../../components/LoadStatus.jsx';
+import { getDashboard } from '../../lib/api.js';
+import { useLoad } from '../../lib/useLoad.js';
 
 export default function Wellness() {
   const { profile } = useOutletContext();
-  const suggestion = suggestWellness(profile, totalsFor(mealsOn()).kcal);
+  const { data, error, loading, reload } = useLoad(getDashboard);
+  const suggestion = data?.wellness;
 
   return (
     <>
       <h1 className="dash-title">Wellness</h1>
-      {suggestion ? (
+      {!data ? (
+        <LoadStatus loading={loading} error={error} onRetry={reload} />
+      ) : suggestion ? (
         <WellnessCard suggestion={suggestion} />
       ) : (
         <p className="dash-empty">

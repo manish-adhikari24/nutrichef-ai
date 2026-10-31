@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { clearAllData, saveProfile } from '../../lib/api.js';
+import { deleteAccount, saveProfile } from '../../lib/api.js';
 
 export default function Settings() {
   const { profile, setProfile } = useOutletContext();
@@ -15,17 +15,23 @@ export default function Settings() {
     if (!confirming && dialog.open) dialog.close();
   }, [confirming]);
 
-  function toggle(key, on, label) {
-    const next = { ...profile, [key]: on };
-    if (saveProfile(next)) {
-      setProfile(next);
+  async function toggle(key, on, label) {
+    try {
+      setProfile(await saveProfile({ ...profile, [key]: on }));
       setStatus(`${label} turned ${on ? 'on' : 'off'}.`);
+    } catch (error) {
+      setStatus(error.message);
     }
   }
 
-  function erase() {
-    clearAllData();
-    navigate('/');
+  async function erase() {
+    try {
+      await deleteAccount();
+      navigate('/');
+    } catch (error) {
+      setConfirming(false);
+      setStatus(error.message);
+    }
   }
 
   return (
@@ -48,14 +54,14 @@ export default function Settings() {
       <section aria-labelledby="data-title" className="profile-section">
         <h2 id="data-title" className="dash-h2">Your data</h2>
         <p className="settings-text">
-          Your account, profile and recipes are stored in this browser for now. Deleting them signs you out and can&apos;t be undone.
+          This permanently deletes your account, profile, saved recipes and food log. It can&apos;t be undone.
         </p>
         <button type="button" className="btn btn-danger" onClick={() => setConfirming(true)}>Delete my data</button>
       </section>
 
       <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="erase-title" onClose={() => setConfirming(false)}>
         <h2 id="erase-title" className="dash-h2">Delete all your data?</h2>
-        <p>This removes your account, profile, saved recipes and food log from this browser.</p>
+        <p>This permanently removes your account, profile, saved recipes and food log.</p>
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={() => setConfirming(false)}>Keep my data</button>
           <button type="button" className="btn btn-danger" onClick={erase}>Delete my data</button>

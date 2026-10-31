@@ -12,10 +12,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   if (isSignedIn()) return <Navigate to={state?.from ?? '/dashboard'} replace />;
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     const found = {};
     if (!email.trim()) found.email = 'Enter your email address.';
@@ -23,12 +24,14 @@ export default function Login() {
     setErrors(found);
     setFormError('');
     if (Object.keys(found).length) return;
-    const result = login(email);
-    if (!result.ok) {
-      setFormError(result.error);
-      return;
+    setBusy(true);
+    try {
+      await login(email, password);
+      navigate(state?.from ?? '/dashboard');
+    } catch (error) {
+      setFormError(error.message);
+      setBusy(false);
     }
-    navigate(state?.from ?? '/dashboard');
   }
 
   return (
@@ -39,10 +42,6 @@ export default function Login() {
       imageAlt="A colorful bowl of chickpeas, avocado, sweet potato and tomatoes from above"
       note="your kitchen missed you"
     >
-      <p className="demo-note">
-        Prototype: accounts are kept in this browser until the backend is connected, so
-        passwords aren&apos;t checked yet.
-      </p>
       {formError && <p className="error-summary" role="alert">{formError}</p>}
       <form className="auth-form" onSubmit={onSubmit} noValidate>
         <div className="field">
@@ -66,7 +65,9 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
-        <button className="btn btn-primary btn-lg btn-block" type="submit">Sign in</button>
+        <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
         <p className="auth-switch">
           New to NutriChef AI? <Link to="/signup">Create a free account</Link>
         </p>

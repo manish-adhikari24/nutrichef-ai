@@ -16,7 +16,9 @@ import {
 } from '@phosphor-icons/react';
 import Logo from './Logo.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-import { isSignedIn, loadProfile, logout } from '../lib/api.js';
+import { getProfile, isSignedIn, logout } from '../lib/api.js';
+import { useLoad } from '../lib/useLoad.js';
+import LoadStatus from './LoadStatus.jsx';
 
 export const NAV_GROUPS = [
   {
@@ -48,7 +50,7 @@ export const NAV_GROUPS = [
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(loadProfile);
+  const { data: profile, setData: setProfile, error, loading, reload } = useLoad(() => (isSignedIn() ? getProfile() : null));
   // Kept here so the latest recipe is still there after visiting another page.
   const [currentRecipe, setCurrentRecipe] = useState(null);
 
@@ -97,7 +99,11 @@ export default function DashboardLayout() {
       </aside>
 
       <main id="main" className="dash-main" tabIndex={-1}>
-        <Outlet context={{ profile, setProfile, currentRecipe, setCurrentRecipe }} />
+        {profile ? (
+          <Outlet context={{ profile, setProfile, currentRecipe, setCurrentRecipe }} />
+        ) : (
+          <LoadStatus loading={loading} error={error} onRetry={reload} />
+        )}
       </main>
     </div>
   );

@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Check, CheckCircle, ShieldCheck, Sparkle, Timer, UsersThree, Warning, WarningCircle } from '@phosphor-icons/react';
-import { assessRecipe, mealTargets, nutritionLooksWrong } from '../lib/nutrition.js';
-import { suggestSubstitutions, suggestSupplements, SUPPLEMENT_DISCLAIMER } from '../lib/rules.js';
-import { allAllergies } from '../lib/api.js';
 
-export default function RecipeCard({ recipe, profile, accepted = {}, onAccept, children }) {
-  const allergies = allAllergies(profile);
-  const alignment = assessRecipe(recipe, profile);
-  const substitutions = suggestSubstitutions(recipe, allergies, profile.diet);
-  const supplements = suggestSupplements(recipe, profile, mealTargets(profile, recipe.meal));
+const NUTRITION_SOURCES = {
+  calculated: 'Calculated from our nutrition dataset.',
+  partly_estimated: 'Calculated from our nutrition dataset, with AI estimates for some ingredients.',
+  ai_estimated: 'AI-estimated values, not checked against our nutrition dataset.',
+};
+
+export default function RecipeCard({ recipe, accepted = {}, onAccept, children }) {
+  const { alignment, substitutions, supplements } = recipe;
   const { kcal, protein, carbs, fat } = recipe.nutrition;
   const badges = [recipe.meal, recipe.cuisine, recipe.difficulty, recipe.budget && recipe.budget !== 'Any' ? `${recipe.budget} budget` : null]
     .filter((b) => b && b !== 'Any');
@@ -52,10 +52,8 @@ export default function RecipeCard({ recipe, profile, accepted = {}, onAccept, c
           <div><dt>Carbs</dt><dd>{carbs} <small>g</small></dd></div>
           <div><dt>Fat</dt><dd>{fat} <small>g</small></dd></div>
         </dl>
-        <p className="field-hint">
-          {recipe.source === 'sample' ? 'Estimated values.' : 'AI-estimated values, not yet checked against a nutrition database.'}
-        </p>
-        {nutritionLooksWrong(recipe.nutrition) && (
+        <p className="field-hint">{NUTRITION_SOURCES[recipe.nutritionSource]}</p>
+        {recipe.nutritionWarning && (
           <p className="estimate-warning" role="note">
             <Warning size={16} weight="fill" aria-hidden /> These numbers look unusual, so treat them with caution.
           </p>
@@ -141,7 +139,7 @@ export default function RecipeCard({ recipe, profile, accepted = {}, onAccept, c
           <ul>
             {supplements.map((s) => <li key={s.title}><b>{s.title}:</b> {s.text}</li>)}
           </ul>
-          <p className="disclaimer"><Warning size={16} weight="fill" aria-hidden /> {SUPPLEMENT_DISCLAIMER}</p>
+          <p className="disclaimer"><Warning size={16} weight="fill" aria-hidden /> {supplements[0].disclaimer}</p>
         </section>
       )}
 

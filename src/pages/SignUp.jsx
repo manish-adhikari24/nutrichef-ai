@@ -44,6 +44,7 @@ export default function SignUp() {
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const summaryRef = useRef(null);
 
@@ -56,19 +57,21 @@ export default function SignUp() {
   const blur = (key) => () => setTouched((t) => ({ ...t, [key]: true }));
   const strength = passwordStrength(values.password);
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     setSubmitted(true);
     if (Object.keys(errors).length) {
       requestAnimationFrame(() => summaryRef.current?.focus());
       return;
     }
-    const result = register(values);
-    if (!result.ok) {
-      setServerError(result.error);
-      return;
+    setBusy(true);
+    try {
+      await register(values);
+      navigate('/dashboard/profile', { state: { setup: true } });
+    } catch (error) {
+      setServerError(error.message);
+      setBusy(false);
     }
-    navigate('/dashboard/profile', { state: { setup: true } });
   }
 
   const field = (key, label, autoComplete, type = 'text') => (
@@ -110,7 +113,8 @@ export default function SignUp() {
       )}
       {serverError && (
         <p className="error-summary" role="alert">
-          {serverError} <Link to="/login">Sign in</Link>
+          {serverError}{' '}
+          {serverError.includes('already registered') && <Link to="/login">Sign in</Link>}
         </p>
       )}
 
@@ -167,8 +171,8 @@ export default function SignUp() {
           {show('terms') && <p id="su-terms-error" className="field-error">{show('terms')}</p>}
         </div>
 
-        <button className="btn btn-primary btn-lg btn-block" type="submit">
-          Create account and start cooking
+        <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
+          {busy ? 'Creating your account…' : 'Create account and start cooking'}
         </button>
         <p className="auth-switch">
           Already have an account? <Link to="/login">Sign in</Link>

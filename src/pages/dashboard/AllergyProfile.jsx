@@ -12,13 +12,12 @@ export default function AllergyProfile() {
 
   const others = profile.otherAllergies.split(',').map((a) => a.trim()).filter(Boolean);
 
-  function update(changes, message) {
-    const next = { ...profile, ...changes };
-    if (saveProfile(next)) {
-      setProfile(next);
+  async function update(changes, message) {
+    try {
+      setProfile(await saveProfile({ ...profile, ...changes }));
       setStatus(message);
-    } else {
-      setStatus('Your browser blocked saving. Check its storage settings and try again.');
+    } catch (error) {
+      setStatus(error.message);
     }
   }
 

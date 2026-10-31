@@ -11,9 +11,26 @@ npm run dev
 
 Then open http://localhost:5173. `npm run build` makes a production build in `dist/`.
 
-## AI recipes
+## Backend
 
-`api/generate-recipe.js` calls Claude. Copy `.env.example` to `.env.local` and add your key for local use. On Vercel, add `ANTHROPIC_API_KEY` under Project Settings > Environment Variables.
+The API is a Django and Django REST Framework project in `backend/`. It uses SQLite locally and PostgreSQL through `DATABASE_URL` in production.
+
+```bash
+cd backend
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt
+cp .env.example .env
+.venv/Scripts/python manage.py migrate
+.venv/Scripts/python manage.py runserver 8000
+```
+
+Run the tests with `.venv/Scripts/python manage.py test`. Add `ANTHROPIC_API_KEY` to `backend/.env` to generate real AI recipes.
+
+## Deploying
+
+- **Database:** PostgreSQL on Neon's free plan. Copy its connection string, including `sslmode=require`.
+- **Backend:** `render.yaml` defines the API on Render. Add `DATABASE_URL` and `ANTHROPIC_API_KEY` in the Render dashboard.
+- **Frontend:** on Vercel, set `VITE_API_URL` to the Render URL.
 
 ## Pages
 
@@ -32,10 +49,9 @@ Colors, fonts and spacing live in `src/styles/tokens.css`. See `BRAND.md` for th
 
 ## Before launch
 
-- There's no real backend yet. All data goes through `src/lib/api.js`, which saves to the browser, so that's the one file to connect to the Django API. Passwords aren't checked or stored until then.
-- Rule tables in `src/lib/rules.js` and allergen aliases in `src/lib/allergens.js` should move to the database. Nutrition values are AI estimates until the nutrition dataset exists.
+- Check the approximate nutrition values in `backend/recipes/seed_data.py` against a published database. Allergen aliases also live in `src/lib/allergens.js` for instant warnings, so keep the two in step. The server's check is the one that counts.
 - Have a lawyer review `src/data/terms.js`, fill in its bracketed details, and publish a Privacy Policy.
-- The AI rate limit is per server instance. Use a shared store and real accounts before a public launch.
+- Rate limits use each server's memory, so use a shared cache if you run more than one.
 - Photos in `public/images/` are free Unsplash placeholders. Swap in your own when ready.
 - When hosting, send every route to `index.html` (a single-page-app rewrite) so direct links
   like `/features` work.

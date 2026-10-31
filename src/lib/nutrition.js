@@ -1,9 +1,4 @@
-// Targets, BMI and goal alignment for FR-03, FR-08 and FR-14.
-export const MEAL_SHARE = { Breakfast: 0.25, Lunch: 0.3, Dinner: 0.35, Snack: 0.1 };
-
-const CALORIE_TOLERANCE = 0.1;
-const MACRO_TOLERANCE_POINTS = 8;
-
+// Live profile feedback and display helpers. The server does recipe analysis.
 export const GOALS = [
   { value: 'weight_loss', label: 'Weight loss', adjust: -400, macros: [30, 40, 30] },
   { value: 'maintenance', label: 'Maintenance', adjust: 0, macros: [25, 45, 30] },
@@ -69,56 +64,6 @@ export function dailyTargets(p) {
     carbs: Math.round((kcal * p.carbsPct) / 100 / 4),
     fat: Math.round((kcal * p.fatPct) / 100 / 9),
   };
-}
-
-export function mealTargets(p, meal) {
-  const daily = dailyTargets(p);
-  if (!daily) return null;
-  const share = MEAL_SHARE[meal] ?? MEAL_SHARE.Dinner;
-  return Object.fromEntries(Object.entries(daily).map(([key, value]) => [key, Math.round(value * share)]));
-}
-
-// Compares one serving against the meal's share of the daily targets (FR-08).
-export function assessRecipe(recipe, profile) {
-  const target = mealTargets(profile, recipe.meal);
-  if (!target) return null;
-  const { kcal, protein, carbs, fat } = recipe.nutrition;
-  const meal = (recipe.meal ?? 'dinner').toLowerCase();
-  const diff = Math.round(((kcal - target.kcal) / target.kcal) * 100);
-  const results = [
-    {
-      key: 'kcal',
-      label: 'Calories',
-      pass: Math.abs(diff) <= CALORIE_TOLERANCE * 100,
-      text: Math.abs(diff) <= CALORIE_TOLERANCE * 100
-        ? `${kcal} kcal is within your ${meal} target of ${target.kcal}.`
-        : `Calories ${diff > 0 ? 'exceed' : 'are under'} your ${meal} target by ${Math.abs(diff)}%.`,
-    },
-  ];
-  const energy = protein * 4 + carbs * 4 + fat * 9;
-  for (const [key, label, grams, perGram, goal] of [
-    ['protein', 'Protein', protein, 4, profile.proteinPct],
-    ['carbs', 'Carbs', carbs, 4, profile.carbsPct],
-    ['fat', 'Fat', fat, 9, profile.fatPct],
-  ]) {
-    const actual = energy > 0 ? Math.round((grams * perGram * 100) / energy) : 0;
-    const pass = Math.abs(actual - goal) <= MACRO_TOLERANCE_POINTS;
-    results.push({
-      key,
-      label,
-      pass,
-      text: pass
-        ? `${actual}% of calories, close to your ${goal}% goal.`
-        : `${actual}% of calories, ${actual > goal ? 'above' : 'below'} your ${goal}% goal.`,
-    });
-  }
-  return results;
-}
-
-// Flags nutrition values that look wrong for one serving (FR-07).
-export function nutritionLooksWrong({ kcal, protein, carbs, fat }) {
-  const energy = protein * 4 + carbs * 4 + fat * 9;
-  return kcal < 30 || kcal > 2500 || protein > 200 || carbs > 400 || fat > 200 || Math.abs(energy - kcal) > kcal * 0.35;
 }
 
 // Status label for intake compared with a target (FR-14).

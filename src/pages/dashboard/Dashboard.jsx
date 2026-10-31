@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import {
   BookmarkSimple,
@@ -12,17 +11,11 @@ import {
   Plus,
   Sparkle,
 } from '@phosphor-icons/react';
-import {
-  generatedCount,
-  listSaved,
-  mealsOn,
-  setWaterToday,
-  totalsFor,
-  waterToday,
-} from '../../lib/api.js';
-import { dailyTargets, intakeStatus } from '../../lib/nutrition.js';
-import { suggestWellness } from '../../lib/rules.js';
+import LoadStatus from '../../components/LoadStatus.jsx';
 import WellnessCard from '../../components/WellnessCard.jsx';
+import { getDashboard, setWater } from '../../lib/api.js';
+import { dailyTargets, intakeStatus } from '../../lib/nutrition.js';
+import { useLoad } from '../../lib/useLoad.js';
 
 const WATER_GOAL = 8;
 
@@ -64,34 +57,50 @@ export function MacroBars({ totals, targets }) {
 
 export default function Dashboard() {
   const { profile } = useOutletContext();
-  const [water, setWater] = useState(waterToday);
+  const { data, setData, error, loading, reload } = useLoad(getDashboard);
   const targets = dailyTargets(profile);
-  const totals = totalsFor(mealsOn());
-  const saved = listSaved();
-  const wellness = suggestWellness(profile, totals.kcal);
   const dateText = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  function changeWater(amount) {
-    const next = Math.max(0, water + amount);
-    setWaterToday(next);
-    setWater(next);
+  const header = (
+    <div className="dash-top">
+      <div>
+        <h1 className="dash-title">{greeting()}{profile.firstName ? `, ${profile.firstName}` : ''}</h1>
+        <p className="dash-date">{dateText}</p>
+      </div>
+      <Link to="/dashboard/generate" className="btn btn-primary"><Sparkle size={18} weight="fill" aria-hidden /> Generate recipe</Link>
+    </div>
+  );
+
+  if (!data) {
+    return (
+      <>
+        {header}
+        <LoadStatus loading={loading} error={error} onRetry={reload} />
+      </>
+    );
+  }
+
+  const { totals, water, generatedToday, recent, wellness } = data;
+
+  async function changeWater(amount) {
+    const glasses = Math.max(0, water + amount);
+    setData({ ...data, water: glasses });
+    try {
+      await setWater(glasses);
+    } catch {
+      setData({ ...data, water });
+    }
   }
 
   const cards = [
     { icon: Fire, value: totals.kcal.toLocaleString('en-US'), label: 'Calories today', sub: targets ? `${Math.round((totals.kcal / targets.kcal) * 100)}% of goal` : 'No goal set' },
     { icon: ForkKnife, value: `${totals.protein}g`, label: 'Protein today', sub: targets ? `Target ${targets.protein}g` : 'No goal set' },
-    { icon: Sparkle, value: generatedCount(), label: 'Recipes generated', sub: 'Today' },
+    { icon: Sparkle, value: generatedToday, label: 'Recipes generated', sub: 'Today' },
   ];
 
   return (
     <>
-      <div className="dash-top">
-        <div>
-          <h1 className="dash-title">{greeting()}{profile.firstName ? `, ${profile.firstName}` : ''}</h1>
-          <p className="dash-date">{dateText}</p>
-        </div>
-        <Link to="/dashboard/generate" className="btn btn-primary"><Sparkle size={18} weight="fill" aria-hidden /> Generate recipe</Link>
-      </div>
+      {header}
 
       {!targets && (
         <div className="care-note" role="note">
@@ -147,17 +156,17 @@ export default function Dashboard() {
             <h2 id="recent-title" className="dash-h2">Recent recipes</h2>
             <Link to="/dashboard/saved" className="inline-link">View all</Link>
           </div>
-          {saved.length === 0 ? (
+          {recent.length === 0 ? (
             <p className="dash-empty">Recipes you save will appear here.</p>
           ) : (
             <ul className="dash-rows">
-              {saved.slice(0, 3).map(({ id, recipe }) => (
-                <li key={id} className="dash-row">
+              {recent.map((item) => (
+                <li key={item.id} className="dash-row">
                   <span>
-                    <b>{recipe.title}</b>
-                    <small>{recipe.meal}, {recipe.minutes} min</small>
+                    <b>{item.title}</b>
+                    <small>{item.meal}, {item.minutes} min</small>
                   </span>
-                  <span className="dash-row-num">{recipe.nutrition.kcal} kcal</span>
+                  <span className="dash-row-num">{item.kcal} kcal</span>
                 </li>
               ))}
             </ul>

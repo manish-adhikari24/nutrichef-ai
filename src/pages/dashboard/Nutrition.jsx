@@ -2,24 +2,28 @@ import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { X } from '@phosphor-icons/react';
 import { MacroBars } from './Dashboard.jsx';
-import { lastDays, mealsOn, removeLogged, today, totalsFor } from '../../lib/api.js';
+import LoadStatus from '../../components/LoadStatus.jsx';
+import { getLog, removeLogged, totalsFor } from '../../lib/api.js';
 import { dailyTargets } from '../../lib/nutrition.js';
+import { useLoad } from '../../lib/useLoad.js';
 
 export default function Nutrition() {
   const { profile } = useOutletContext();
   const [view, setView] = useState('today');
-  const [meals, setMeals] = useState(() => mealsOn());
+  const [message, setMessage] = useState('');
+  const { data, error, loading, reload } = useLoad(getLog);
   const targets = dailyTargets(profile);
-  const days = lastDays(7).map((d) => d.toLocaleDateString('en-CA'));
-  const weekMeals = days.flatMap((d) => mealsOn(d));
 
-  function remove(id) {
-    removeLogged(id);
-    setMeals(mealsOn(today()));
+  async function remove(id) {
+    try {
+      await removeLogged(id);
+      reload();
+    } catch (err) {
+      setMessage(err.message);
+    }
   }
 
-  const weekTotals = totalsFor(weekMeals);
-  const totals = view === 'today' ? totalsFor(meals) : weekTotals;
+  const totals = data && (view === 'today' ? totalsFor(data.today) : totalsFor(data.days));
   // The week view compares seven days of intake with seven days of targets.
   const shownTargets = targets && view === 'week'
     ? Object.fromEntries(Object.entries(targets).map(([key, value]) => [key, value * 7]))
@@ -41,7 +45,9 @@ export default function Nutrition() {
         </div>
       )}
 
-      {totals.kcal === 0 ? (
+      {!data && <LoadStatus loading={loading} error={error} onRetry={reload} />}
+
+      {data && (totals.kcal === 0 ? (
         <p className="dash-empty">
           Nothing logged {view === 'today' ? 'today' : 'this week'}.{' '}
           <Link to="/dashboard/generate" className="inline-link">Generate a recipe</Link> or log one from your{' '}
@@ -49,13 +55,13 @@ export default function Nutrition() {
         </p>
       ) : (
         <MacroBars totals={totals} targets={shownTargets} />
-      )}
+      ))}
 
-      {view === 'today' && meals.length > 0 && (
+      {data && view === 'today' && data.today.length > 0 && (
         <section aria-labelledby="eaten-title" className="dash-section">
           <h2 id="eaten-title" className="dash-h2">Eaten today</h2>
           <ul className="dash-rows">
-            {meals.map((m) => (
+            {data.today.map((m) => (
               <li key={m.id} className="dash-row">
                 <span><b>{m.title}</b><small>{m.meal}</small></span>
                 <span className="dash-row-end">
@@ -65,6 +71,7 @@ export default function Nutrition() {
               </li>
             ))}
           </ul>
+          <p role="status" className="profile-status">{message}</p>
         </section>
       )}
     </>

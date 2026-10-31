@@ -6,7 +6,7 @@ export const TERMS = [
   {
     title: 'About these terms',
     body: [
-      'NutriChef AI is run by [Company legal name], ABN [ABN] ("we", "us"). These terms apply when you use our website and app. By ticking "I agree" and using NutriChef AI, you accept them.',
+      'NutriChef AI is run by Nutrichef AI and Co. ("we", "us"). These terms apply when you use our website and app. By ticking "I agree" and using NutriChef AI, you accept them.',
     ],
   },
   {
@@ -89,7 +89,7 @@ export const TERMS = [
   {
     title: 'Governing law and contact',
     body: [
-      'These terms are governed by the laws of [State or Territory], Australia. Contact us first about any problem at [contact email] and we\'ll try to resolve it.',
+      'These terms are governed by the laws of New South Wales, Australia. Contact us first about any problem at [contact email] and we\'ll try to resolve it.',
     ],
   },
 ];

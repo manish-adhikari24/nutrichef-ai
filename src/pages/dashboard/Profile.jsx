@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { allAllergies, EMPTY_PROFILE, saveProfile } from '../../lib/api.js';
+import { allAllergies, EMPTY_HEALTH, saveProfile } from '../../lib/api.js';
 import { ACTIVITY, bmi, bmiCategory, GOALS, suggestTargets } from '../../lib/nutrition.js';
 
 const DIETS = ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Low carb'];
@@ -68,7 +68,7 @@ export default function Profile() {
     setStatus('');
   }
 
-  function save(e) {
+  async function save(e) {
     e.preventDefault();
     const found = validate(form);
     setErrors(found);
@@ -76,31 +76,31 @@ export default function Profile() {
       setStatus('Fix the highlighted details to save your profile.');
       return;
     }
-    if (!saveProfile(form)) {
-      setStatus('Your browser blocked saving. Check its storage settings and try again.');
-      return;
+    try {
+      const saved = await saveProfile(form);
+      setProfile(saved);
+      setForm(saved);
+      if (state?.setup) {
+        navigate('/dashboard');
+        return;
+      }
+      setStatus('Profile saved.');
+    } catch (error) {
+      setErrors(error.fields ?? {});
+      setStatus(error.message);
     }
-    setProfile(form);
-    if (state?.setup) {
-      navigate('/dashboard');
-      return;
-    }
-    setStatus('Profile saved.');
   }
 
-  function removeHealthDetails() {
-    const cleared = {
-      ...EMPTY_PROFILE,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      showSupplements: form.showSupplements,
-      showWellness: form.showWellness,
-    };
-    setForm(cleared);
-    setProfile(cleared);
-    saveProfile(cleared);
-    setErrors({});
-    setStatus('Health details removed.');
+  async function removeHealthDetails() {
+    try {
+      const saved = await saveProfile({ ...form, ...EMPTY_HEALTH });
+      setForm(saved);
+      setProfile(saved);
+      setErrors({});
+      setStatus('Health details removed.');
+    } catch (error) {
+      setStatus(error.message);
+    }
   }
 
   return (

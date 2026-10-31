@@ -2,19 +2,10 @@ import { useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { BookmarkSimple, Check, ForkKnife, Plus, Sparkle, Warning, X } from '@phosphor-icons/react';
 import RecipeCard from '../../components/RecipeCard.jsx';
-import {
-  acceptRecipe,
-  allAllergies,
-  generateRecipe,
-  isSaved,
-  logMeal,
-  RecipeError,
-  saveRecipe,
-} from '../../lib/api.js';
+import { allAllergies, generateRecipe, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
 import { findAllergens } from '../../lib/allergens.js';
 import { CATEGORIES, normalizeList } from '../../lib/ingredients.js';
-import { dailyTargets, mealTargets } from '../../lib/nutrition.js';
-import { SAMPLE_RECIPES } from '../../lib/sampleRecipes.js';
+import { dailyTargets } from '../../lib/nutrition.js';
 
 const FILTERS = [
   { key: 'meal', label: 'Meal type', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'] },
@@ -26,6 +17,7 @@ const FILTERS = [
 const MINUTES = { 'Under 15 min': 15, 'Under 30 min': 30, 'Under 1 hour': 60 };
 const CATEGORY_NAMES = ['All', ...Object.keys(CATEGORIES)];
 const allChips = Object.values(CATEGORIES).flat();
+const OFFER_SAMPLE = ['not_configured', 'ai_unavailable'];
 
 export default function GenerateRecipe() {
   const { profile, currentRecipe, setCurrentRecipe } = useOutletContext();
@@ -44,14 +36,15 @@ export default function GenerateRecipe() {
   const [note, setNote] = useState('');
   const [rating, setRating] = useState(0);
   const [accepted, setAccepted] = useState({});
+  const [saved, setSaved] = useState(false);
   const [logged, setLogged] = useState(false);
-  const sampleIndex = useRef(0);
   const inputRef = useRef(null);
 
   const allergies = allAllergies(profile);
   const consent = profile.healthConsent;
   const ingredients = normalizeList(rawIngredients);
   const names = ingredients.map((i) => i.name);
+  // An instant warning while typing. The server's check decides what's blocked.
   const conflicts = findAllergens(names, allergies);
   const chips = category === 'All' ? allChips : CATEGORIES[category];
   const activeBadges = Object.entries(filters).filter(([, value]) => value !== 'Any').map(([, value]) => value);
@@ -63,8 +56,7 @@ export default function GenerateRecipe() {
   }
 
   function removeIngredient(name) {
-    const remaining = ingredients.filter((i) => i.name !== name).map((i) => i.name);
-    setRawIngredients(remaining);
+    setRawIngredients(ingredients.filter((i) => i.name !== name).map((i) => i.name));
   }
 
   function onAdd(e) {
@@ -80,40 +72,21 @@ export default function GenerateRecipe() {
     inputRef.current?.focus();
   }
 
-  function showRecipe(recipe) {
-    setCurrentRecipe(recipe);
-    setAccepted({});
-    setNote('');
-    setRating(0);
-    setLogged(false);
-    setMessage('');
-    requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  }
-
   function buildRequest() {
-    const personal = consent
-      ? {
-          diet: profile.diet === 'No specific diet' ? '' : profile.diet,
-          allergies,
-          dislikes: profile.dislikes,
-          targets: mealTargets(profile, filters.meal) ?? undefined,
-        }
-      : {};
     return {
       ingredients: names,
       meal: filters.meal,
       cuisine: filters.cuisine,
       difficulty: filters.difficulty,
       budget: filters.budget,
-      minutes: MINUTES[filters.time],
-      calories: useCalories ? calories : undefined,
+      minutes: MINUTES[filters.time] ?? null,
+      calories: useCalories ? calories : null,
       servings,
       notes,
-      ...personal,
     };
   }
 
-  async function generate() {
+  async function requestRecipe(call) {
     setMessage('');
     if (names.length === 0) {
       setError({ message: 'Please enter at least one ingredient.' });
@@ -126,46 +99,43 @@ export default function GenerateRecipe() {
     setBusy(true);
     setError(null);
     try {
-      showRecipe(await generateRecipe(buildRequest(), allergies));
+      const recipe = await call(buildRequest());
+      setCurrentRecipe(recipe);
+      setAccepted({});
+      setNote('');
+      setRating(0);
+      setSaved(false);
+      setLogged(false);
+      requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     } catch (err) {
-      const known = err instanceof RecipeError;
-      setCurrentRecipe(known && err.code === 'blocked' ? null : currentRecipe);
-      setError({
-        message: known ? err.message : 'The recipe couldn\'t be generated. Try again in a moment.',
-        code: known ? err.code : undefined,
-      });
+      if (err.code === 'blocked') setCurrentRecipe(null);
+      setError({ message: err.message, code: err.code });
     } finally {
       setBusy(false);
     }
   }
 
-  function showSample() {
-    const sample = SAMPLE_RECIPES[sampleIndex.current % SAMPLE_RECIPES.length];
-    sampleIndex.current += 1;
+  async function onSave() {
+    const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
     try {
-      const request = { ...buildRequest(), diet: profile.diet === 'No specific diet' ? '' : profile.diet };
-      showRecipe(acceptRecipe(sample, request, allergies, 'sample'));
-      setError(null);
+      await saveRecipe(currentRecipe.id, { note: [note.trim(), ...subs].filter(Boolean).join('. '), rating });
+      setSaved(true);
+      setMessage('Recipe saved.');
     } catch (err) {
-      setCurrentRecipe(null);
-      setError({ message: err.message, code: 'blocked' });
+      if (err.status === 409) setSaved(true);
+      setMessage(err.message);
     }
   }
 
-  function onSave() {
-    const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
-    const fullNote = [note.trim(), ...subs].filter(Boolean).join('. ');
-    const result = saveRecipe(currentRecipe, { note: fullNote, rating });
-    setMessage(result.ok ? 'Recipe saved.' : result.error);
+  async function onLog() {
+    try {
+      await logMeal(currentRecipe.id);
+      setLogged(true);
+      setMessage('Logged as eaten today.');
+    } catch (err) {
+      setMessage(err.message);
+    }
   }
-
-  function onLog() {
-    logMeal(currentRecipe);
-    setLogged(true);
-    setMessage('Logged as eaten today.');
-  }
-
-  const saved = currentRecipe ? isSaved(currentRecipe.id) : false;
 
   return (
     <>
@@ -188,7 +158,7 @@ export default function GenerateRecipe() {
         <div className="care-note" role="note">
           <p>
             <b>Your diet and goals aren&apos;t being sent to the AI.</b> Your allergies are still checked
-            here, but the AI won&apos;t know about them, so more recipes may be blocked.{' '}
+            by NutriChef AI, but the AI won&apos;t know about them, so more recipes may be blocked.{' '}
             <Link to="/dashboard/profile">Give consent in your profile</Link>.
           </p>
         </div>
@@ -306,7 +276,7 @@ export default function GenerateRecipe() {
       </div>
 
       <div className="generate-action">
-        <button type="button" className="btn btn-primary btn-lg" onClick={generate} disabled={busy}>
+        <button type="button" className="btn btn-primary btn-lg" onClick={() => requestRecipe(generateRecipe)} disabled={busy}>
           <Sparkle size={18} weight="fill" aria-hidden />
           {busy ? 'Writing your recipe…' : 'Generate recipe'}
         </button>
@@ -317,11 +287,11 @@ export default function GenerateRecipe() {
         <div className={error.code === 'blocked' ? 'allergy-alert' : 'generate-error'} role="alert">
           {error.code === 'blocked' && <Warning size={22} weight="fill" aria-hidden />}
           <p>{error.message}</p>
-          {error.code === 'not_configured' && names.length > 0 && conflicts.length === 0 && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={showSample}>Show a sample recipe instead</button>
+          {OFFER_SAMPLE.includes(error.code) && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => requestRecipe(sampleRecipe)} disabled={busy}>Show a sample recipe instead</button>
           )}
-          {error.code !== 'not_configured' && names.length > 0 && conflicts.length === 0 && (
-            <button type="button" className="link-btn" onClick={generate}>Try again</button>
+          {!OFFER_SAMPLE.includes(error.code) && names.length > 0 && conflicts.length === 0 && (
+            <button type="button" className="link-btn" onClick={() => requestRecipe(generateRecipe)}>Try again</button>
           )}
         </div>
       )}
@@ -329,7 +299,6 @@ export default function GenerateRecipe() {
       {currentRecipe && (
         <RecipeCard
           recipe={currentRecipe}
-          profile={profile}
           accepted={accepted}
           onAccept={(ingredient, value) => setAccepted((a) => ({ ...a, [ingredient]: value }))}
         >
@@ -357,7 +326,7 @@ export default function GenerateRecipe() {
               {logged ? <Check size={18} weight="bold" aria-hidden /> : <ForkKnife size={18} aria-hidden />}
               {logged ? 'Logged' : 'Log as eaten'}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={generate} disabled={busy}>
+            <button type="button" className="btn btn-ghost" onClick={() => requestRecipe(generateRecipe)} disabled={busy}>
               {busy ? 'Writing…' : 'Regenerate'}
             </button>
             <span role="status" className="profile-status">{message}</span>
