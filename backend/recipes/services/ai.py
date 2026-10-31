@@ -1,13 +1,19 @@
-"""Writes recipes with Claude. The API key stays on the server (FR-05, NFR-05)."""
+"""Writes recipes with Gemini. The API key stays on the server (FR-05, NFR-05).
+
+Google's free tier allows human review of prompts and says not to submit sensitive or
+personal information. So prompts carry no name, age, body details or health labels:
+allergies and dislikes go only as an anonymous list of ingredients to avoid.
+"""
 import json
 import logging
 import os
 
-import anthropic
+from google import genai
+from google.genai import errors, types
 
 logger = logging.getLogger(__name__)
 
-MODEL = 'claude-opus-5-5'
+MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MAX_ATTEMPTS = 2
 
 SYSTEM_PROMPT = """You are the recipe writer for NutriChef AI, an app for home cooks.
@@ -15,7 +21,7 @@ Write one practical recipe from the details you are given.
 
 Rules:
 - Base the recipe on the listed ingredients. Add as few other ingredients as you can and mark those as missing.
-- Never include an ingredient containing a listed allergen, including in sauces, stocks and garnishes. If a request conflicts with an allergy, the allergy wins. List anything the cook should check on packaged-food labels in label_checks.
+- Never include anything from the ingredients to avoid, including in sauces, stocks and garnishes. That rule beats every other request. List anything the cook should check on packaged-food labels in label_checks.
 - Respect the diet, dislikes, filters and servings. If the filters can't all be met, write the closest recipe and explain why in constraint_warning. Otherwise leave constraint_warning empty.
 - Aim close to the nutrition targets per serving. For each ingredient, estimate its weight in grams and the nutrition of that whole amount. The top-level nutrition is your estimate per serving.
 - Use metric measurements and safe cooking temperatures and times.
@@ -92,6 +98,7 @@ def is_valid_recipe(recipe):
 
 def build_prompt(r):
     targets = ', '.join(f'{key}: {value}' for key, value in (r.get('targets') or {}).items() if value)
+    avoid = ', '.join([*(r.get('allergies') or []), *([r['dislikes']] if r.get('dislikes') else [])])
     return f"""<request>
 Meal type: {r['meal']}
 Cuisine: {r['cuisine']}
@@ -102,8 +109,7 @@ Calories per serving: {r.get('calories') or 'no specific range'}
 Servings: {r['servings']}
 Ingredients available: {', '.join(r['ingredients'])}
 Diet: {r.get('diet') or 'no specific diet'}
-Allergies, must be avoided: {', '.join(r.get('allergies') or []) or 'none listed'}
-Dislikes: {r.get('dislikes') or 'none listed'}
+Ingredients to avoid: {avoid or 'none listed'}
 Nutrition targets per serving: {targets or 'none set'}
 Extra notes: {r.get('notes') or 'none'}
 </request>"""
@@ -111,36 +117,36 @@ Extra notes: {r.get('notes') or 'none'}
 
 def write_recipe(request):
     """Returns a validated recipe, retrying once if the reply is malformed."""
-    if not os.environ.get('ANTHROPIC_API_KEY'):
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
         raise NotConfigured
-    client = anthropic.Anthropic(timeout=55.0, max_retries=1)
+    client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=55_000))
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT,
+        response_mime_type='application/json',
+        response_json_schema=RECIPE_SCHEMA,
+        max_output_tokens=16000,
+    )
     prompt = build_prompt(request)
     for _attempt in range(MAX_ATTEMPTS):
         try:
-            response = client.beta.messages.create(
-                model=MODEL,
-                max_tokens=16000,
-                betas=['server-side-fallback-2026-07-01'],
-                fallbacks='default',
-                output_config={'effort': 'low', 'format': {'type': 'json_schema', 'schema': RECIPE_SCHEMA}},
-                system=SYSTEM_PROMPT,
-                messages=[{'role': 'user', 'content': prompt}],
-            )
-        except anthropic.AuthenticationError as error:
-            logger.error('Anthropic API key was rejected')
-            raise NotConfigured from error
-        except anthropic.APIError as error:
+            response = client.models.generate_content(model=MODEL, contents=prompt, config=config)
+        except errors.ClientError as error:
+            logger.warning('Recipe generation failed with status %s', error.code)
+            if error.code in (400, 401, 403) and 'API' in str(error.status or '') + str(error.message or ''):
+                raise NotConfigured from error
+            raise Unavailable from error
+        except (errors.APIError, OSError) as error:
             logger.warning('Recipe generation failed: %s', type(error).__name__)
             raise Unavailable from error
 
-        if response.stop_reason == 'refusal':
+        feedback = getattr(response, 'prompt_feedback', None)
+        if feedback is not None and getattr(feedback, 'block_reason', None):
             raise Refused
-        if response.stop_reason != 'max_tokens':
-            text = next((b.text for b in reversed(response.content) if b.type == 'text'), '')
-            try:
-                recipe = json.loads(text)
-            except json.JSONDecodeError:
-                continue
-            if is_valid_recipe(recipe):
-                return recipe
+        try:
+            recipe = json.loads(response.text or '')
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if is_valid_recipe(recipe):
+            return recipe
     raise Malformed

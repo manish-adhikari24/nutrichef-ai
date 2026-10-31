@@ -264,7 +264,8 @@ export default function GenerateRecipe() {
 
           <div className="field">
             <label htmlFor="g-notes" className="field-label">Anything else? <span className="field-optional">Optional</span></label>
-            <input id="g-notes" type="text" maxLength={300} placeholder="Something spicy, one pan only" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <input id="g-notes" type="text" maxLength={300} placeholder="Something spicy, one pan only" value={notes} onChange={(e) => setNotes(e.target.value)} aria-describedby="g-notes-hint" />
+            <p id="g-notes-hint" className="field-hint">Don&apos;t include personal or health details.</p>
           </div>
 
           {activeBadges.length > 0 && (

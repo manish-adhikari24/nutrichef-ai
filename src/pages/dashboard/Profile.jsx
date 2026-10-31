@@ -229,9 +229,10 @@ export default function Profile() {
           <label className="check-row consent-row">
             <input type="checkbox" checked={form.healthConsent} onChange={(e) => update('healthConsent', e.target.checked)} />
             <span>
-              Use my diet, allergies, dislikes and targets to personalise AI recipes. I understand
-              these are sent to NutriChef AI&apos;s AI provider, Anthropic, which may process them
-              outside Australia.
+              Use my diet, targets and foods to avoid (including my allergies) to personalise AI
+              recipes. I understand these are sent to our AI provider, Google, without my name or
+              body details. Google may process them outside Australia, and its reviewers may read them
+              to improve its products.
             </span>
           </label>
           <p className="field-hint">

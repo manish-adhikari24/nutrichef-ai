@@ -4,7 +4,7 @@ const QUESTIONS = [
   ['Where do nutrition numbers come from?', 'We calculate them from our nutrition dataset where we can, and use AI estimates for other ingredients. Each recipe says which it used, and all values are approximate.'],
   ['How do I track what I eat?', 'Select Log as eaten on a recipe. It then counts toward your dashboard, Nutrition tracker and Progress.'],
   ['Is this medical advice?', 'No. NutriChef AI gives general information only. Talk to a doctor or dietitian about your own health.'],
-  ['Where is my data stored?', 'In your NutriChef AI account. With your consent, your diet, allergies, dislikes and targets are also sent to our AI provider to write recipes. You can delete everything in Settings.'],
+  ['Where is my data stored?', 'In your NutriChef AI account. To write recipes, your ingredients and filters go to our AI provider, Google, along with your diet, targets and foods to avoid if you consent. It doesn\'t receive your name or body details, and its reviewers may read what is sent. You can delete everything in Settings.'],
 ];
 
 export default function Help() {

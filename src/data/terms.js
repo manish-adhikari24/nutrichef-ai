@@ -42,7 +42,7 @@ export const TERMS = [
     title: 'Your health information',
     body: [
       'Details such as your height, weight, age and allergies can be sensitive information under the Privacy Act 1988 (Cth). We collect only what we need for meal personalisation, and we do not store medical diagnoses. We use these details with your consent, and you can change or remove them, or withdraw consent, in your profile at any time.',
-      'To write a recipe, we send your ingredients, preferences, allergies and targets to our AI provider, Anthropic, which may process them outside Australia. Don\'t type anything into the notes field that you don\'t want shared this way. We don\'t sell your health information.',
+      'To write a recipe, we send your ingredients, filters, diet, calorie and macro targets, and a list of ingredients to avoid to our AI provider, Google (Gemini). We don\'t send your name, email, age or body details, and we don\'t label anything as an allergy. Google may process this outside Australia, and on the free service we use, Google\'s human reviewers may read it to improve its products. Don\'t type personal or health details into the notes field. We don\'t sell your health information.',
       'Our Privacy Policy explains how we collect, store and protect personal information, and how to access or correct it or make a complaint.',
     ],
   },
