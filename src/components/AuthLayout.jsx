@@ -1,4 +1,4 @@
-// Shared two-column layout for the sign-up and sign-in pages.
+// Shared two-column layout for the sign-up and login pages.
 export default function AuthLayout({ title, intro, children, image, imageAlt, note }) {
   return (
     <section className="auth" aria-labelledby="auth-title">

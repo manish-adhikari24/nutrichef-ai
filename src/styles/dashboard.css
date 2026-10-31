@@ -1,0 +1,546 @@
+/* App shell: sidebar on large screens, top bar plus bottom tabs on phones. */
+.dash {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.dash-side {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  height: 100dvh;
+  padding: 22px 16px 16px 20px;
+  border-right: 1px solid var(--line);
+}
+
+.dash-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.dash-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.dash-link:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.dash-link.active {
+  background: color-mix(in srgb, var(--beet) 12%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.dash-link.active svg {
+  color: var(--beet);
+}
+
+.dash-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.dash-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-inline: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.dash-logout:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.dash-main {
+  width: 100%;
+  max-width: 1160px;
+  padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px) 64px;
+}
+
+.dash-sample {
+  margin-bottom: var(--space-3);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.dash-title {
+  margin-bottom: var(--space-5);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-3);
+  line-height: 1.05;
+}
+
+.dash-h2 {
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.dash-h2-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.dash-count {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+/* Nutrition: today's summary */
+.dash-today {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-hero-num {
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 3rem + 6vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--beet);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-hero-label {
+  margin-top: 8px;
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.dash-hero-sub {
+  margin-top: 8px;
+  max-width: 44ch;
+  color: var(--ink-2);
+}
+
+.dash-hero .text-link {
+  margin-top: var(--space-3);
+}
+
+.dash-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 64px);
+  align-items: start;
+}
+
+.dash-columns-plan {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+
+/* Rows shared by meals and pantry items */
+.dash-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-row > span:first-child {
+  min-width: 0;
+}
+
+.dash-row b {
+  display: block;
+  font-weight: 600;
+}
+
+.dash-row small {
+  display: block;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.dash-row-num {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.dash-row-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Weekly calories chart */
+.bars {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  height: 220px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.bars-goal {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 1.5px dashed var(--ink-2);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bars-goal span {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  padding-inline: 4px;
+  background: var(--paper);
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.bar-col {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+}
+
+.bar {
+  display: block;
+  width: min(60%, 36px);
+  border-radius: 4px 4px 0 0;
+  background: var(--beet);
+  transition: opacity var(--dur-fast) ease;
+}
+
+/* Today isn't finished, so it uses a texture as well as a label. */
+.bar-today {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--beet) 0 4px,
+    color-mix(in srgb, var(--beet) 35%, var(--paper)) 4px 8px
+  );
+}
+
+.bars:has(.bar-col:hover) .bar-col:not(:hover) .bar {
+  opacity: 0.45;
+}
+
+.bar-tip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.bar-col:nth-child(2) .bar-tip {
+  left: 0;
+  translate: 0 0;
+}
+
+.bar-col:last-child .bar-tip {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+}
+
+.bar-col:hover .bar-tip,
+.bar-col:focus-visible .bar-tip {
+  opacity: 1;
+}
+
+.bars-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.bars-days .is-today {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.bars-figure {
+  margin: 0;
+}
+
+.bars-table {
+  margin-top: var(--space-3);
+  font-size: var(--step--1);
+}
+
+.bars-table summary {
+  width: fit-content;
+  padding-block: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bars-table table {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 6px;
+  border-collapse: collapse;
+}
+
+.bars-table th,
+.bars-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-weight: 400;
+  text-align: left;
+}
+
+.bars-table td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Add forms */
+.dash-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.dash-add .field-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.dash-add-name {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.dash-add select {
+  min-height: 50px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: inherit;
+  color: var(--ink);
+}
+
+.dash-add-btn {
+  min-height: 50px;
+}
+
+.dash-add-error {
+  flex-basis: 100%;
+}
+
+.dash-add-compact {
+  margin-top: var(--space-4);
+}
+
+.dash-status {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block: 8px var(--space-3);
+  font-size: 0.95rem;
+}
+
+.dash-empty {
+  padding-block: var(--space-4);
+  color: var(--ink-2);
+}
+
+/* Pantry */
+.pantry-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) clamp(32px, 5vw, 64px);
+  align-items: start;
+}
+
+.pantry-soon {
+  grid-column: 1 / -1;
+  padding: 20px 24px 12px;
+  border: 1.5px solid var(--beet);
+  border-radius: var(--radius);
+}
+
+.pantry-soon .dash-row:last-child {
+  border-bottom: 0;
+}
+
+.soon-tag {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--beet);
+  white-space: nowrap;
+}
+
+/* Meal plan */
+.plan-day {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: 2px 16px;
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  grid-row: span 2;
+  align-self: start;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+}
+
+.is-today .plan-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.today-tag {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--beet);
+  color: var(--on-beet);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.plan-meal {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.plan-off {
+  font-style: italic;
+  color: var(--ink-2);
+}
+
+.plan-meta {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.grocery-list .check-row {
+  min-height: 44px;
+}
+
+.grocery-list .is-bought span {
+  color: var(--ink-2);
+  text-decoration: line-through;
+}
+
+.dash-columns-plan .link-btn {
+  margin-top: 10px;
+}
+
+/* Phones and small tablets: top bar and bottom tabs */
+@media (max-width: 860px) {
+  .dash {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-side {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: auto;
+    padding: 10px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .dash-tools {
+    margin-top: 0;
+    gap: 4px;
+  }
+  .dash-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+  }
+  .dash-link {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    padding: 4px;
+    font-size: 0.78rem;
+  }
+  .dash-main {
+    padding-bottom: 104px;
+  }
+  .dash-today,
+  .dash-columns,
+  .dash-columns-plan,
+  .pantry-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-day {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pantry-soon {
+    padding-inline: 16px;
+  }
+  .dash-add-btn,
+  .dash-add select,
+  .dash-add > div {
+    width: 100%;
+  }
+}

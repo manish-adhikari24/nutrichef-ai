@@ -6,6 +6,8 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/pages.css';
+import './styles/dashboard.css';
+import './styles/app-pages.css';
 
 // The shareable build is hosted where the URL can't change, so it keeps
 // navigation in memory. Normal builds use real URLs.

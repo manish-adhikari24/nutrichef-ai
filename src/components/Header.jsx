@@ -41,8 +41,8 @@ export default function Header() {
 
         <div className="header-actions">
           <ThemeToggle />
-          <NavLink to="/signin" className="nav-link signin-link">
-            Sign in
+          <NavLink to="/login" className="nav-link login-link">
+            Log in
           </NavLink>
           <Link to="/signup" className="btn btn-primary btn-sm header-signup">
             Sign up free

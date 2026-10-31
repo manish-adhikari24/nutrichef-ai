@@ -251,7 +251,7 @@
   gap: var(--space-3);
 }
 
-.signin-link {
+.login-link {
   color: var(--ink);
   font-weight: 600;
 }
@@ -428,13 +428,6 @@ input[aria-invalid='true'] {
   font-size: var(--step--1);
   font-weight: 500;
   color: var(--danger);
-}
-
-.field-success {
-  font-size: var(--step--1);
-  font-weight: 500;
-  color: var(--herb);
-  margin-bottom: var(--space-3);
 }
 
 .password-wrap {
