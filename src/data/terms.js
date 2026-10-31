@@ -41,7 +41,7 @@ export const TERMS = [
   {
     title: 'Your health information',
     body: [
-      'Details such as your height, weight, age, allergies and medical conditions can be sensitive information under the Privacy Act 1988 (Cth). We only use them with your consent, to personalise your targets and recipes. You can change or remove them, or withdraw consent, in your profile at any time.',
+      'Details such as your height, weight, age and allergies can be sensitive information under the Privacy Act 1988 (Cth). We collect only what we need for meal personalisation, and we do not store medical diagnoses. We use these details with your consent, and you can change or remove them, or withdraw consent, in your profile at any time.',
       'To write a recipe, we send your ingredients, preferences, allergies and targets to our AI provider, Anthropic, which may process them outside Australia. Don\'t type anything into the notes field that you don\'t want shared this way. We don\'t sell your health information.',
       'Our Privacy Policy explains how we collect, store and protect personal information, and how to access or correct it or make a complaint.',
     ],
@@ -60,8 +60,9 @@ export const TERMS = [
     ],
   },
   {
-    title: 'Fees and changes to the service',
+    title: 'Suggestions, fees and changes to the service',
     body: [
+      'Supplement and wellness suggestions are optional, general information. They aren\'t medical advice, treatment or professional training advice, and you can turn them off in Settings.',
       'NutriChef AI is free during beta. We\'ll tell you the price and get your agreement before charging for anything.',
       'We may change, limit or stop features. Where a change materially affects you, we\'ll try to give you reasonable notice.',
     ],

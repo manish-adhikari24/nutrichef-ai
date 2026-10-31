@@ -1,48 +1,23 @@
 import { Link } from 'react-router-dom';
-import {
-  Basket,
-  Heart,
-  ForkKnife,
-  Timer,
-  Check,
-  ShoppingCart,
-  CaretLeft,
-  CaretRight,
-} from '@phosphor-icons/react';
+import { Basket, Check, FirstAidKit, ForkKnife, Heart, Timer } from '@phosphor-icons/react';
 import { LogoMark } from '../components/Logo.jsx';
-import { Carrot, Egg, NoteArrow } from '../components/Doodles.jsx';
 import AppMock from '../components/AppMock.jsx';
 import SignupBand from '../components/SignupBand.jsx';
 
 const INPUTS = [
-  { icon: Basket, label: 'Your ingredients', hint: 'typed, or scanned from a photo' },
-  { icon: Heart, label: 'Your goals', hint: 'calories, protein, fiber' },
-  { icon: ForkKnife, label: 'How you eat', hint: 'diet, allergies, dislikes' },
-  { icon: Timer, label: 'Your evening', hint: 'time, servings, equipment' },
+  { icon: Basket, label: 'Your ingredients', hint: 'typed or picked from suggestions' },
+  { icon: FirstAidKit, label: 'Your allergies', hint: 'stored in your allergy profile' },
+  { icon: Heart, label: 'Your goals', hint: 'calories, protein, carbs and fat' },
+  { icon: ForkKnife, label: 'How you eat', hint: 'diet and foods you dislike' },
+  { icon: Timer, label: 'Your filters', hint: 'meal, cuisine, time, difficulty, budget' },
 ];
 
 const OUTPUTS = [
-  'A recipe written for tonight',
-  'Macros for every serving',
-  'Smart swaps for missing items',
-  'A grocery list for the gaps',
-];
-
-const PLAN = [
-  ['Mon', 'Shakshuka'],
-  ['Tue', 'Miso salmon bowls'],
-  ['Wed', 'Harissa chickpeas'],
-  ['Thu', 'Leftover fried rice'],
-  ['Fri', 'Turkey tacos'],
-  ['Sat', 'Out with friends'],
-  ['Sun', 'Lentil ragù'],
-];
-
-const GROCERIES = [
-  ['Parsley', true],
-  ['Salmon fillets (2)', false],
-  ['Corn tortillas', false],
-  ['Red lentils', true],
+  'A structured recipe with quantities and steps',
+  'An allergen check, with unsafe recipes blocked',
+  'Calories and macros for each serving',
+  'Pass or warning against your goals',
+  'Substitutes for what you don\'t have',
 ];
 
 function EngineDiagram() {
@@ -64,9 +39,6 @@ function EngineDiagram() {
           <LogoMark size={64} />
           <span>NutriChef AI</span>
         </div>
-        <p className="engine-core-note">
-          Balances thousands of ingredient pairings against your targets in a few seconds.
-        </p>
       </div>
       <ul className="engine-col engine-out">
         {OUTPUTS.map((o) => (
@@ -80,57 +52,6 @@ function EngineDiagram() {
   );
 }
 
-function CookMode() {
-  return (
-    <div className="cook-mode" aria-label="Cook mode screen">
-      <p className="cook-step">Step 3 of 6</p>
-      <p className="cook-text">
-        Make four wells in the sauce and crack an egg into each. Cover and cook gently.
-      </p>
-      <div className="cook-timer" aria-label="Timer: 4 minutes">
-        <svg viewBox="0 0 100 100" aria-hidden>
-          <circle cx="50" cy="50" r="44" className="timer-track" />
-          <circle cx="50" cy="50" r="44" className="timer-fill" />
-        </svg>
-        <span>04:00</span>
-      </div>
-      <div className="cook-nav" aria-hidden>
-        <span><CaretLeft size={16} /> Back</span>
-        <span className="cook-next">Next step <CaretRight size={16} /></span>
-      </div>
-    </div>
-  );
-}
-
-function WeekPlan() {
-  return (
-    <div className="week" aria-label="Example weekly plan and grocery list">
-      <ol className="week-grid">
-        {PLAN.map(([d, meal]) => (
-          <li key={d} className={meal === 'Out with friends' ? 'week-off' : undefined}>
-            <span>{d}</span>
-            <b>{meal}</b>
-          </li>
-        ))}
-      </ol>
-      <div className="grocery">
-        <p className="grocery-h">
-          <ShoppingCart size={18} aria-hidden /> Grocery list
-        </p>
-        <ul>
-          {GROCERIES.map(([item, done]) => (
-            <li key={item} className={done ? 'done' : undefined}>
-              <span className="box" aria-hidden>{done && <Check size={12} weight="bold" />}</span>
-              {item}
-              {done && <span className="visually-hidden"> (bought)</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
 export default function HowItWorks() {
   return (
     <>
@@ -140,13 +61,13 @@ export default function HowItWorks() {
             A kitchen that thinks before you cook.
           </h1>
           <p className="lede page-lede">
-            NutriChef AI is a web app that plans dinner from what you already own. Here&apos;s
-            everything it does, from the first ingredient to the last bite.
+            NutriChef AI is a web app that writes recipes from what you already own. Here&apos;s
+            how it gets from your ingredients to a recipe that&apos;s safe for you.
           </p>
         </div>
       </section>
 
-      <section className="section tour-mock" aria-label="Try the app steps">
+      <section className="section tour-mock" aria-label="The app in three steps">
         <div className="wrap">
           <AppMock />
         </div>
@@ -155,56 +76,20 @@ export default function HowItWorks() {
       <section className="section" aria-labelledby="engine-title">
         <div className="wrap">
           <div className="section-head">
-            <h2 id="engine-title" className="display-2">What happens when you press Generate</h2>
+            <h2 id="engine-title" className="display-2">What happens when you select Generate</h2>
             <p className="lede">
-              Four things about you go in. A recipe that fits all four comes out, along with
-              everything you need to cook it.
+              Everything about your kitchen and your goals goes in. A checked recipe comes out, or
+              it&apos;s blocked if it isn&apos;t safe for you.
             </p>
           </div>
           <EngineDiagram />
+          <p className="preview-more">
+            <Link to="/features" className="text-link">See every feature</Link>
+          </p>
         </div>
       </section>
 
-      <section className="section" aria-labelledby="cook-title">
-        <div className="wrap split">
-          <div className="split-copy">
-            <h2 id="cook-title" className="display-2">Hands busy? Cook mode reads along with you.</h2>
-            <p className="lede">
-              One step at a time, in big type, with built-in timers. Your screen stays awake, so
-              you never wipe flour off a phone to find your place.
-            </p>
-            <span className="note margin-note">
-              <Egg className="inline-doodle" /> timers start themselves
-            </span>
-          </div>
-          <CookMode />
-        </div>
-      </section>
-
-      <section className="section" aria-labelledby="week-title">
-        <div className="wrap split split-rev">
-          <WeekPlan />
-          <div className="split-copy">
-            <h2 id="week-title" className="display-2">Then it plans the rest of your week.</h2>
-            <p className="lede">
-              Pick the nights you&apos;ll cook. NutriChef fills them with recipes that share
-              ingredients, so Monday&apos;s leftovers become Thursday&apos;s dinner and the grocery
-              list stays short.
-            </p>
-            <div className="note-row">
-              <NoteArrow variant={2} flip />
-              <span className="note">
-                <Carrot className="inline-doodle" /> one shop, seven dinners
-              </span>
-            </div>
-            <Link to="/features" className="text-link">
-              See every feature
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <SignupBand heading="Ready to see what your fridge can make?" />
+      <SignupBand heading="Ready to see what your kitchen can make?" />
     </>
   );
 }

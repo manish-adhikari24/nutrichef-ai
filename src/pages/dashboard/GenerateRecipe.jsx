@@ -1,176 +1,178 @@
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { Check, ShoppingCart, Sparkle, Timer, UsersThree, Warning } from '@phosphor-icons/react';
-import { activeTargets, allAllergies } from '../../data/profile.js';
+import { BookmarkSimple, Check, ForkKnife, Plus, Sparkle, Warning, X } from '@phosphor-icons/react';
+import RecipeCard from '../../components/RecipeCard.jsx';
+import {
+  acceptRecipe,
+  allAllergies,
+  generateRecipe,
+  isSaved,
+  logMeal,
+  RecipeError,
+  saveRecipe,
+} from '../../lib/api.js';
+import { findAllergens } from '../../lib/allergens.js';
+import { CATEGORIES, normalizeList } from '../../lib/ingredients.js';
+import { dailyTargets, mealTargets } from '../../lib/nutrition.js';
+import { SAMPLE_RECIPES } from '../../lib/sampleRecipes.js';
 
-const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-const TIMES = [15, 30, 45, 60];
-const MEAL_SHARE = { Breakfast: 0.25, Lunch: 0.3, Dinner: 0.35, Snack: 0.1 };
-
-// A meal's share of the daily targets, so recipes fit into the whole day.
-function mealTargets(targets, meal) {
-  if (!targets) return undefined;
-  const share = MEAL_SHARE[meal];
-  return Object.fromEntries(
-    ['kcal', 'protein', 'carbs', 'fat', 'fiber'].map((key) => [key, Math.round(targets[key] * share)])
-  );
-}
-
-function Recipe({ recipe, flags, onAddMissing, added, onAgain, busy }) {
-  const missing = recipe.ingredients.filter((i) => i.missing);
-  const { kcal, protein, carbs, fat, fiber } = recipe.nutrition;
-
-  return (
-    <article className="recipe" aria-labelledby="recipe-title">
-      <p className="mock-kicker"><Sparkle size={14} weight="fill" aria-hidden /> Written by AI, please check it before cooking</p>
-      <h2 id="recipe-title" className="recipe-title">{recipe.title}</h2>
-      <p className="recipe-desc">{recipe.description}</p>
-      <ul className="meta-list">
-        <li><Timer size={16} aria-hidden /> {recipe.minutes} min</li>
-        <li><UsersThree size={16} aria-hidden /> Serves {recipe.servings}</li>
-      </ul>
-
-      {flags.length > 0 && (
-        <div className="allergy-alert" role="alert">
-          <Warning size={22} weight="fill" aria-hidden />
-          <p>
-            <b>Don&apos;t cook this without checking.</b> An ingredient may contain{' '}
-            {flags.join(', ')}, which you listed as an allergy. Generate another recipe instead.
-          </p>
-        </div>
-      )}
-
-      <dl className="target-list recipe-nutrition" aria-label="Estimated nutrition per serving">
-        <div><dt>Calories</dt><dd>{kcal} <small>kcal</small></dd></div>
-        <div><dt>Protein</dt><dd>{protein} <small>g</small></dd></div>
-        <div><dt>Carbs</dt><dd>{carbs} <small>g</small></dd></div>
-        <div><dt>Fat</dt><dd>{fat} <small>g</small></dd></div>
-        <div><dt>Fiber</dt><dd>{fiber} <small>g</small></dd></div>
-      </dl>
-      <p className="field-hint">Estimated per serving.</p>
-
-      <div className="recipe-columns">
-        <section aria-labelledby="ing-title">
-          <h3 id="ing-title" className="dash-h2">Ingredients</h3>
-          <ul className="recipe-ingredients">
-            {recipe.ingredients.map((i) => (
-              <li key={i.name}>
-                <span>{i.amount} {i.name}</span>
-                {i.missing && <b className="missing-tag">To buy</b>}
-              </li>
-            ))}
-          </ul>
-          {missing.length > 0 && (
-            <button type="button" className="btn btn-ghost btn-sm recipe-add" onClick={onAddMissing} disabled={added}>
-              {added ? <Check size={16} weight="bold" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
-              {added ? 'Added to grocery list' : 'Add missing to grocery list'}
-            </button>
-          )}
-        </section>
-        <section aria-labelledby="steps-title">
-          <h3 id="steps-title" className="dash-h2">Method</h3>
-          <ol className="recipe-steps">
-            {recipe.steps.map((step) => <li key={step}>{step}</li>)}
-          </ol>
-        </section>
-      </div>
-
-      <p className="recipe-why"><b>Why this suits you:</b> {recipe.why_it_fits}</p>
-      {recipe.label_checks.length > 0 && (
-        <p className="recipe-why"><b>Check these labels:</b> {recipe.label_checks.join(', ')}</p>
-      )}
-      <p className="recipe-disclaimer">
-        AI can make mistakes. If you have an allergy, check every ingredient and label yourself.
-        This isn&apos;t medical or dietary advice.
-      </p>
-      <button type="button" className="btn btn-primary" onClick={onAgain} disabled={busy}>
-        {busy ? 'Writing your recipe…' : 'Generate another'}
-      </button>
-    </article>
-  );
-}
+const FILTERS = [
+  { key: 'meal', label: 'Meal type', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'] },
+  { key: 'cuisine', label: 'Cuisine style', options: ['Any', 'Asian', 'Mediterranean', 'Mexican', 'Western'] },
+  { key: 'time', label: 'Prep time', options: ['Any', 'Under 15 min', 'Under 30 min', 'Under 1 hour'] },
+  { key: 'difficulty', label: 'Difficulty', options: ['Any', 'Easy', 'Medium', 'Hard'] },
+  { key: 'budget', label: 'Budget', options: ['Any', 'Low', 'Medium', 'High'] },
+];
+const MINUTES = { 'Under 15 min': 15, 'Under 30 min': 30, 'Under 1 hour': 60 };
+const CATEGORY_NAMES = ['All', ...Object.keys(CATEGORIES)];
+const allChips = Object.values(CATEGORIES).flat();
 
 export default function GenerateRecipe() {
-  const { pantry, profile, setGroceries } = useOutletContext();
-  const [meal, setMeal] = useState('Dinner');
-  const [minutes, setMinutes] = useState(30);
+  const { profile, currentRecipe, setCurrentRecipe } = useOutletContext();
+  const [typed, setTyped] = useState('');
+  const [rawIngredients, setRawIngredients] = useState([]);
+  const [category, setCategory] = useState('All');
+  const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: 'Under 30 min', difficulty: 'Any', budget: 'Any' });
+  const [useCalories, setUseCalories] = useState(false);
+  const [calories, setCalories] = useState(500);
   const [servings, setServings] = useState(2);
   const [notes, setNotes] = useState('');
-  const [excluded, setExcluded] = useState([]);
-  const [status, setStatus] = useState('idle'); // idle | loading
-  const [error, setError] = useState('');
-  const [result, setResult] = useState(null);
-  const [added, setAdded] = useState(false);
+  const [inputError, setInputError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState('');
+  const [note, setNote] = useState('');
+  const [rating, setRating] = useState(0);
+  const [accepted, setAccepted] = useState({});
+  const [logged, setLogged] = useState(false);
+  const sampleIndex = useRef(0);
+  const inputRef = useRef(null);
 
-  const consent = profile.healthConsent;
   const allergies = allAllergies(profile);
-  const targets = activeTargets(profile);
-  const ingredients = useMemo(
-    () => [...pantry].sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999)),
-    [pantry]
-  );
-  const chosen = ingredients.filter((i) => !excluded.includes(i.id));
+  const consent = profile.healthConsent;
+  const ingredients = normalizeList(rawIngredients);
+  const names = ingredients.map((i) => i.name);
+  const conflicts = findAllergens(names, allergies);
+  const chips = category === 'All' ? allChips : CATEGORIES[category];
+  const activeBadges = Object.entries(filters).filter(([, value]) => value !== 'Any').map(([, value]) => value);
+  if (useCalories) activeBadges.push(`About ${calories} kcal`);
 
-  function toggleItem(id) {
-    setExcluded((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
+  function addIngredient(name) {
+    setRawIngredients((list) => [...list, name]);
+    setInputError('');
   }
 
-  async function generate(e) {
-    e?.preventDefault();
-    if (chosen.length === 0) {
-      setError('Choose at least one ingredient to cook with.');
+  function removeIngredient(name) {
+    const remaining = ingredients.filter((i) => i.name !== name).map((i) => i.name);
+    setRawIngredients(remaining);
+  }
+
+  function onAdd(e) {
+    e.preventDefault();
+    const parts = typed.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) {
+      setInputError('Enter an ingredient name to add it.');
       return;
     }
-    setStatus('loading');
-    setError('');
-    setAdded(false);
+    setRawIngredients((list) => [...list, ...parts]);
+    setTyped('');
+    setInputError('');
+    inputRef.current?.focus();
+  }
 
-    // Health details are only sent with the consent given on the profile page.
-    const body = {
-      pantry: chosen.map((i) => (i.amount ? `${i.name} (${i.amount})` : i.name)),
-      useSoon: chosen.filter((i) => i.daysLeft != null && i.daysLeft <= 3).map((i) => i.name),
-      meal,
-      minutes,
+  function showRecipe(recipe) {
+    setCurrentRecipe(recipe);
+    setAccepted({});
+    setNote('');
+    setRating(0);
+    setLogged(false);
+    setMessage('');
+    requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  function buildRequest() {
+    const personal = consent
+      ? {
+          diet: profile.diet === 'No specific diet' ? '' : profile.diet,
+          allergies,
+          dislikes: profile.dislikes,
+          targets: mealTargets(profile, filters.meal) ?? undefined,
+        }
+      : {};
+    return {
+      ingredients: names,
+      meal: filters.meal,
+      cuisine: filters.cuisine,
+      difficulty: filters.difficulty,
+      budget: filters.budget,
+      minutes: MINUTES[filters.time],
+      calories: useCalories ? calories : undefined,
       servings,
       notes,
-      ...(consent && {
-        diet: profile.diet === 'No specific diet' ? '' : profile.diet,
-        allergies,
-        dislikes: profile.dislikes,
-        targets: mealTargets(targets, meal),
-      }),
+      ...personal,
     };
+  }
 
+  async function generate() {
+    setMessage('');
+    if (names.length === 0) {
+      setError({ message: 'Please enter at least one ingredient.' });
+      return;
+    }
+    if (conflicts.length) {
+      setError({ message: `Remove ${conflicts.join(', ')} from your ingredients before generating.` });
+      return;
+    }
+    setBusy(true);
+    setError(null);
     try {
-      const response = await fetch('/api/generate-recipe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? 'The recipe couldn\'t be generated. Try again in a moment.');
-      setResult({ recipe: data.recipe, flags: data.allergenFlags ?? [] });
+      showRecipe(await generateRecipe(buildRequest(), allergies));
     } catch (err) {
-      setError(err instanceof TypeError ? 'Check your internet connection and try again.' : err.message);
+      const known = err instanceof RecipeError;
+      setCurrentRecipe(known && err.code === 'blocked' ? null : currentRecipe);
+      setError({
+        message: known ? err.message : 'The recipe couldn\'t be generated. Try again in a moment.',
+        code: known ? err.code : undefined,
+      });
     } finally {
-      setStatus('idle');
+      setBusy(false);
     }
   }
 
-  function addMissing() {
-    const missing = result.recipe.ingredients.filter((i) => i.missing);
-    setGroceries((items) => [
-      ...items,
-      ...missing.map((i, index) => ({ id: Date.now() + index, name: `${i.name}, ${i.amount}`, bought: false })),
-    ]);
-    setAdded(true);
+  function showSample() {
+    const sample = SAMPLE_RECIPES[sampleIndex.current % SAMPLE_RECIPES.length];
+    sampleIndex.current += 1;
+    try {
+      const request = { ...buildRequest(), diet: profile.diet === 'No specific diet' ? '' : profile.diet };
+      showRecipe(acceptRecipe(sample, request, allergies, 'sample'));
+      setError(null);
+    } catch (err) {
+      setCurrentRecipe(null);
+      setError({ message: err.message, code: 'blocked' });
+    }
   }
 
-  const busy = status === 'loading';
+  function onSave() {
+    const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
+    const fullNote = [note.trim(), ...subs].filter(Boolean).join('. ');
+    const result = saveRecipe(currentRecipe, { note: fullNote, rating });
+    setMessage(result.ok ? 'Recipe saved.' : result.error);
+  }
+
+  function onLog() {
+    logMeal(currentRecipe);
+    setLogged(true);
+    setMessage('Logged as eaten today.');
+  }
+
+  const saved = currentRecipe ? isSaved(currentRecipe.id) : false;
 
   return (
     <>
-      <h1 className="dash-title">What should we cook?</h1>
+      <h1 className="dash-title">What&apos;s in your kitchen today?</h1>
+      <p className="lede generate-lede">
+        Add your ingredients and we&apos;ll write a recipe that&apos;s allergen-checked and fits your goals.
+      </p>
 
       {consent ? (
         <p className="generate-context">
@@ -178,100 +180,189 @@ export default function GenerateRecipe() {
           {[
             profile.diet !== 'No specific diet' && profile.diet,
             allergies.length > 0 ? `avoiding ${allergies.join(', ')}` : 'no allergies listed',
-            targets && `${targets.kcal.toLocaleString('en-US')} kcal a day`,
+            dailyTargets(profile) && `${dailyTargets(profile).kcal.toLocaleString('en-US')} kcal a day`,
           ].filter(Boolean).join('; ')}.{' '}
           <Link to="/dashboard/profile">Edit profile</Link>
         </p>
       ) : (
         <div className="care-note" role="note">
           <p>
-            <b>Your allergies and diet aren&apos;t being used.</b> Recipes won&apos;t avoid your
-            allergens until you <Link to="/dashboard/profile">add them and give consent in your profile</Link>.
+            <b>Your diet and goals aren&apos;t being sent to the AI.</b> Your allergies are still checked
+            here, but the AI won&apos;t know about them, so more recipes may be blocked.{' '}
+            <Link to="/dashboard/profile">Give consent in your profile</Link>.
           </p>
         </div>
       )}
 
-      <form className="generate-form" onSubmit={generate} noValidate>
-        <div className="generate-options">
-          <div className="field">
-            <label htmlFor="g-meal" className="field-label">Meal</label>
-            <select id="g-meal" value={meal} onChange={(e) => setMeal(e.target.value)}>
-              {MEALS.map((m) => <option key={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="g-time" className="field-label">Time available</label>
-            <select id="g-time" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
-              {TIMES.map((t) => <option key={t} value={t}>{t} minutes</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="g-servings" className="field-label">Servings</label>
-            <select id="g-servings" value={servings} onChange={(e) => setServings(Number(e.target.value))}>
-              {[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}
-            </select>
-          </div>
-        </div>
+      <div className="generate-grid">
+        <section aria-labelledby="add-title" className="generate-panel">
+          <h2 id="add-title" className="dash-h2">Add ingredients</h2>
+          <form className="dash-add" onSubmit={onAdd} noValidate>
+            <div className="dash-add-name">
+              <label htmlFor="g-ingredient" className="field-label">Ingredient</label>
+              <input
+                id="g-ingredient"
+                ref={inputRef}
+                type="text"
+                placeholder="chicken, broccoli, lemon"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                aria-invalid={inputError ? true : undefined}
+                aria-describedby={inputError ? 'g-ingredient-error' : undefined}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary dash-add-btn"><Plus size={18} aria-hidden /> Add</button>
+            {inputError && <p id="g-ingredient-error" className="field-error dash-add-error">{inputError}</p>}
+          </form>
 
-        <fieldset className="field diet-field">
-          <legend className="field-label">Ingredients to use ({chosen.length} of {ingredients.length})</legend>
-          <div className="chip-list">
-            {ingredients.map((i) => {
-              const on = !excluded.includes(i.id);
-              const soon = i.daysLeft != null && i.daysLeft <= 3;
+          <div className="chip-list category-chips" role="group" aria-label="Filter suggestions by category">
+            {CATEGORY_NAMES.map((name) => (
+              <button key={name} type="button" className={`chip chip-btn${category === name ? ' chip-on' : ''}`} aria-pressed={category === name} onClick={() => setCategory(name)}>
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="chip-list" role="group" aria-label="Suggested ingredients">
+            {chips.map((name) => {
+              const on = names.includes(name.toLowerCase());
               return (
-                <label key={i.id} className={`chip chip-check${on ? ' chip-on' : ''}`}>
-                  <input type="checkbox" checked={on} onChange={() => toggleItem(i.id)} />
+                <button key={name} type="button" className={`chip chip-btn${on ? ' chip-on' : ''}`} aria-pressed={on} onClick={() => (on ? removeIngredient(name.toLowerCase()) : addIngredient(name))}>
                   {on && <Check size={14} weight="bold" aria-hidden />}
-                  {i.name}{soon && ', use soon'}
-                </label>
+                  {name}
+                </button>
               );
             })}
           </div>
-          {ingredients.length === 0 && (
-            <p className="dash-empty">Your pantry is empty. <Link to="/dashboard/pantry">Add ingredients</Link> to get started.</p>
+
+          <h3 className="dash-h3">Your added ingredients ({ingredients.length})</h3>
+          {ingredients.length === 0 ? (
+            <p className="dash-empty">No ingredients yet. Add at least one to generate a recipe.</p>
+          ) : (
+            <ul className="added-list">
+              {ingredients.map((i) => {
+                const bad = findAllergens([i.name], allergies);
+                return (
+                  <li key={i.name} className={bad.length ? 'is-conflict' : undefined}>
+                    <span>
+                      {i.name}
+                      {bad.length > 0 && <b className="conflict-tag"><Warning size={14} weight="fill" aria-hidden /> Contains {bad.join(', ')}</b>}
+                      {!i.recognised && !bad.length && <small> Not in our list, kept as typed</small>}
+                    </span>
+                    <button type="button" className="icon-btn" onClick={() => removeIngredient(i.name)} aria-label={`Remove ${i.name}`}><X size={18} aria-hidden /></button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </fieldset>
+          {conflicts.length > 0 && (
+            <div className="allergy-alert" role="alert">
+              <Warning size={22} weight="fill" aria-hidden />
+              <p><b>Allergy conflict.</b> Your ingredients include {conflicts.join(', ')}. Remove it to generate a recipe.</p>
+            </div>
+          )}
+        </section>
 
-        <div className="field">
-          <label htmlFor="g-notes" className="field-label">
-            Anything else? <span className="field-optional">Optional</span>
+        <section aria-labelledby="filter-title" className="generate-panel">
+          <h2 id="filter-title" className="dash-h2">Recipe filters</h2>
+          <div className="filter-grid">
+            {FILTERS.map(({ key, label, options }) => (
+              <div key={key} className="field">
+                <label htmlFor={`f-${key}`} className="field-label">{label}</label>
+                <select id={`f-${key}`} value={filters[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}>
+                  {options.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </div>
+            ))}
+            <div className="field">
+              <label htmlFor="f-servings" className="field-label">Servings</label>
+              <select id="f-servings" value={servings} onChange={(e) => setServings(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className="check-row">
+            <input type="checkbox" checked={useCalories} onChange={(e) => setUseCalories(e.target.checked)} />
+            <span>Set a calorie target per serving</span>
           </label>
-          <input
-            id="g-notes"
-            type="text"
-            maxLength={300}
-            placeholder="Something spicy, one pan only"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
+          {useCalories && (
+            <div className="field calorie-field">
+              <label htmlFor="f-calories" className="field-label">About {calories} kcal</label>
+              <input id="f-calories" type="range" min="100" max="1200" step="50" value={calories} onChange={(e) => setCalories(Number(e.target.value))} />
+            </div>
+          )}
 
-        <button type="submit" className="btn btn-primary btn-lg" disabled={busy}>
+          <div className="field">
+            <label htmlFor="g-notes" className="field-label">Anything else? <span className="field-optional">Optional</span></label>
+            <input id="g-notes" type="text" maxLength={300} placeholder="Something spicy, one pan only" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+
+          {activeBadges.length > 0 && (
+            <ul className="chip-list" aria-label="Selected filters">
+              {activeBadges.map((badge) => <li key={badge} className="chip chip-on">{badge}</li>)}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <div className="generate-action">
+        <button type="button" className="btn btn-primary btn-lg" onClick={generate} disabled={busy}>
           <Sparkle size={18} weight="fill" aria-hidden />
           {busy ? 'Writing your recipe…' : 'Generate recipe'}
         </button>
-      </form>
-
-      <div aria-live="polite">
-        {error && (
-          <div className="generate-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="link-btn" onClick={generate}>Try again</button>
-          </div>
-        )}
-        {busy && !result && <p className="generate-wait">Checking your pantry and writing a recipe. This can take up to a minute.</p>}
+        {busy && <p className="generate-wait" role="status">Checking allergies and writing your recipe.</p>}
       </div>
 
-      {result && (
-        <Recipe
-          recipe={result.recipe}
-          flags={result.flags}
-          onAddMissing={addMissing}
-          added={added}
-          onAgain={generate}
-          busy={busy}
-        />
+      {error && (
+        <div className={error.code === 'blocked' ? 'allergy-alert' : 'generate-error'} role="alert">
+          {error.code === 'blocked' && <Warning size={22} weight="fill" aria-hidden />}
+          <p>{error.message}</p>
+          {error.code === 'not_configured' && names.length > 0 && conflicts.length === 0 && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={showSample}>Show a sample recipe instead</button>
+          )}
+          {error.code !== 'not_configured' && names.length > 0 && conflicts.length === 0 && (
+            <button type="button" className="link-btn" onClick={generate}>Try again</button>
+          )}
+        </div>
+      )}
+
+      {currentRecipe && (
+        <RecipeCard
+          recipe={currentRecipe}
+          profile={profile}
+          accepted={accepted}
+          onAccept={(ingredient, value) => setAccepted((a) => ({ ...a, [ingredient]: value }))}
+        >
+          {!saved && (
+            <div className="save-fields">
+              <div className="field">
+                <label htmlFor="save-note" className="field-label">Note <span className="field-optional">Optional</span></label>
+                <input id="save-note" type="text" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="save-rating" className="field-label">Rating <span className="field-optional">Optional</span></label>
+                <select id="save-rating" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+                  <option value={0}>No rating</option>
+                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} out of 5</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+          <div className="recipe-actions">
+            <button type="button" className="btn btn-primary" onClick={onSave} disabled={saved}>
+              {saved ? <Check size={18} weight="bold" aria-hidden /> : <BookmarkSimple size={18} aria-hidden />}
+              {saved ? 'Saved' : 'Save recipe'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={onLog} disabled={logged}>
+              {logged ? <Check size={18} weight="bold" aria-hidden /> : <ForkKnife size={18} aria-hidden />}
+              {logged ? 'Logged' : 'Log as eaten'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={generate} disabled={busy}>
+              {busy ? 'Writing…' : 'Regenerate'}
+            </button>
+            <span role="status" className="profile-status">{message}</span>
+          </div>
+        </RecipeCard>
       )}
     </>
   );

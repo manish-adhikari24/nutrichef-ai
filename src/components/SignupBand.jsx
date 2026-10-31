@@ -41,7 +41,7 @@ export default function SignupBand({ heading = 'Your first recipe is one sign-up
             </button>
           </div>
           <p className="signup-band-alt">
-            Already cooking with us? <Link to="/login">Log in</Link>
+            Already cooking with us? <Link to="/login">Sign in</Link>
           </p>
         </form>
       </div>

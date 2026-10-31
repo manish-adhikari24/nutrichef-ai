@@ -1,23 +1,63 @@
 import { useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Basket, CalendarBlank, ChartDonut, CookingPot, SignOut, User } from '@phosphor-icons/react';
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  ChartDonut,
+  ChartLineUp,
+  CookingPot,
+  DotsThree,
+  FirstAidKit,
+  GearSix,
+  Heart,
+  House,
+  Question,
+  BookmarkSimple,
+  SignOut,
+  User,
+} from '@phosphor-icons/react';
 import Logo from './Logo.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-import { INITIAL_GROCERIES, INITIAL_PANTRY } from '../data/sampleDashboard.js';
-import { loadProfile } from '../data/profile.js';
+import { isSignedIn, loadProfile, logout } from '../lib/api.js';
 
-const LINKS = [
-  { to: '/dashboard', label: 'Generate', icon: CookingPot, end: true },
-  { to: '/dashboard/nutrition', label: 'Nutrition', icon: ChartDonut },
-  { to: '/dashboard/pantry', label: 'Pantry', icon: Basket },
-  { to: '/dashboard/meal-plan', label: 'Meal plan', icon: CalendarBlank },
+export const NAV_GROUPS = [
+  {
+    label: 'Main',
+    links: [
+      { to: '/dashboard', label: 'Dashboard', icon: House, end: true },
+      { to: '/dashboard/generate', label: 'Generate recipe', short: 'Generate', icon: CookingPot },
+      { to: '/dashboard/saved', label: 'Saved recipes', short: 'Saved', icon: BookmarkSimple },
+      { to: '/dashboard/nutrition', label: 'Nutrition tracker', short: 'Nutrition', icon: ChartDonut },
+    ],
+  },
+  {
+    label: 'Health',
+    links: [
+      { to: '/dashboard/allergies', label: 'Allergy profile', icon: FirstAidKit },
+      { to: '/dashboard/progress', label: 'Progress', icon: ChartLineUp },
+      { to: '/dashboard/wellness', label: 'Wellness', icon: Heart },
+    ],
+  },
+  {
+    label: 'Account',
+    links: [
+      { to: '/dashboard/settings', label: 'Settings', icon: GearSix },
+      { to: '/dashboard/help', label: 'Help', icon: Question },
+    ],
+  },
 ];
 
 export default function DashboardLayout() {
-  // Kept here so edits survive moving between dashboard pages.
-  const [pantry, setPantry] = useState(INITIAL_PANTRY);
-  const [groceries, setGroceries] = useState(INITIAL_GROCERIES);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(loadProfile);
+  // Kept here so the latest recipe is still there after visiting another page.
+  const [currentRecipe, setCurrentRecipe] = useState(null);
+
+  if (!isSignedIn()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+
+  function signOut() {
+    logout();
+    navigate('/');
+  }
 
   return (
     <div className="dash">
@@ -29,17 +69,27 @@ export default function DashboardLayout() {
           <ThemeToggle />
         </div>
         <nav className="dash-nav" aria-label="Dashboard">
-          {LINKS.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className="dash-link">
-              <Icon size={22} aria-hidden />
-              {label}
-            </NavLink>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className={`dash-group dash-group-${group.label.toLowerCase()}`}>
+              <p className="dash-group-label">{group.label}</p>
+              {group.links.map(({ to, label, short, icon: Icon, end }) => (
+                <NavLink key={to} to={to} end={end} className="dash-link">
+                  <Icon size={22} aria-hidden />
+                  <span className="dash-link-full">{label}</span>
+                  <span className="dash-link-short">{short ?? label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
+          <NavLink to="/dashboard/more" className="dash-link dash-link-more">
+            <DotsThree size={22} aria-hidden />
+            <span>More</span>
+          </NavLink>
         </nav>
         <div className="dash-tools">
-          <Link to="/" className="dash-logout">
+          <button type="button" className="dash-logout" onClick={signOut}>
             <SignOut size={20} aria-hidden /> Log out
-          </Link>
+          </button>
           <NavLink to="/dashboard/profile" className="dash-head" aria-label="Your profile" title="Your profile">
             <User size={20} weight="bold" aria-hidden />
           </NavLink>
@@ -47,7 +97,7 @@ export default function DashboardLayout() {
       </aside>
 
       <main id="main" className="dash-main" tabIndex={-1}>
-        <Outlet context={{ pantry, setPantry, groceries, setGroceries, profile, setProfile }} />
+        <Outlet context={{ profile, setProfile, currentRecipe, setCurrentRecipe }} />
       </main>
     </div>
   );

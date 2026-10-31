@@ -25,18 +25,15 @@ Then open http://localhost:5173. `npm run build` makes a production build in `di
 | `/our-story` | `src/pages/Story.jsx` |
 | `/signup` | `src/pages/SignUp.jsx` |
 | `/login` | `src/pages/Login.jsx` |
-| `/dashboard` | `src/pages/dashboard/GenerateRecipe.jsx` |
-| `/dashboard/nutrition` | `src/pages/dashboard/Nutrition.jsx` |
-| `/dashboard/profile` | `src/pages/dashboard/Profile.jsx` |
-| `/dashboard/pantry` | `src/pages/dashboard/Pantry.jsx` |
-| `/dashboard/meal-plan` | `src/pages/dashboard/MealPlan.jsx` |
+| `/results`, `/reviews` | `src/pages/Results.jsx`, `src/pages/Reviews.jsx` |
+| `/dashboard/*` | `src/pages/dashboard/` |
 
 Colors, fonts and spacing live in `src/styles/tokens.css`. See `BRAND.md` for the brand guide.
 
 ## Before launch
 
-- Sign-up and login have no real accounts yet: the buttons just move to the next page, and anyone can open the dashboard. Search for `TODO` to find where to add real sign-in.
-- Nutrition, pantry and meal plan use sample data from `src/data/sampleDashboard.js`. The profile is saved only in the browser, so real accounts need secure storage.
+- There's no real backend yet. All data goes through `src/lib/api.js`, which saves to the browser, so that's the one file to connect to the Django API. Passwords aren't checked or stored until then.
+- Rule tables in `src/lib/rules.js` and allergen aliases in `src/lib/allergens.js` should move to the database. Nutrition values are AI estimates until the nutrition dataset exists.
 - Have a lawyer review `src/data/terms.js`, fill in its bracketed details, and publish a Privacy Policy.
 - The AI rate limit is per server instance. Use a shared store and real accounts before a public launch.
 - Photos in `public/images/` are free Unsplash placeholders. Swap in your own when ready.

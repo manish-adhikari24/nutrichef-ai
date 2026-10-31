@@ -6,9 +6,10 @@ import ThemeToggle from './ThemeToggle.jsx';
 
 const LINKS = [
   { to: '/', label: 'Home', end: true },
-  { to: '/how-it-works', label: 'How it works' },
   { to: '/features', label: 'Features' },
-  { to: '/our-story', label: 'Our story' },
+  { to: '/how-it-works', label: 'How it works' },
+  { to: '/results', label: 'Results' },
+  { to: '/reviews', label: 'Reviews' },
 ];
 
 export default function Header() {
@@ -42,10 +43,10 @@ export default function Header() {
         <div className="header-actions">
           <ThemeToggle />
           <NavLink to="/login" className="nav-link login-link">
-            Log in
+            Sign in
           </NavLink>
           <Link to="/signup" className="btn btn-primary btn-sm header-signup">
-            Sign up free
+            Get started free
           </Link>
           <button
             type="button"
@@ -68,7 +69,7 @@ export default function Header() {
             </NavLink>
           ))}
           <Link to="/signup" className="btn btn-primary mobile-cta">
-            Sign up free
+            Get started free
           </Link>
         </div>
       </nav>

@@ -1,24 +1,22 @@
 import { useRef, useState } from 'react';
-import {
-  Camera,
-  Check,
-  Plus,
-  Timer,
-  UsersThree,
-  Leaf as LeafIcon,
-  ShoppingCart,
-  Sparkle,
-} from '@phosphor-icons/react';
+import { Check, Plus, ShieldCheck, Sparkle, Timer, UsersThree, Leaf as LeafIcon } from '@phosphor-icons/react';
 import MacroRing from './MacroRing.jsx';
 import { img } from '../img.js';
 
 const STEPS = [
-  { id: 'kitchen', label: 'Tell it what you have', url: 'app.nutrichef.ai/kitchen' },
-  { id: 'goals', label: 'Set your goals', url: 'app.nutrichef.ai/goals' },
-  { id: 'recipe', label: 'Cook your recipe', url: 'app.nutrichef.ai/recipe/lemony-shakshuka' },
+  { id: 'kitchen', label: 'Add your ingredients', url: 'nutrichef.ai/generate' },
+  { id: 'goals', label: 'Choose your filters', url: 'nutrichef.ai/generate' },
+  { id: 'recipe', label: 'Get your recipe', url: 'nutrichef.ai/recipe' },
 ];
 
-const PANTRY = ['Eggs (6)', 'Baby spinach', 'Lemon', 'Feta', 'Chickpeas', 'Cherry tomatoes', 'Garlic'];
+const INGREDIENTS = ['Eggs', 'Spinach', 'Lemon', 'Chickpeas', 'Tomato', 'Garlic'];
+const FILTERS = [
+  ['Meal type', 'Dinner'],
+  ['Cuisine', 'Mediterranean'],
+  ['Prep time', 'Under 30 min'],
+  ['Difficulty', 'Easy'],
+  ['Budget', 'Low'],
+];
 
 function KitchenPanel() {
   return (
@@ -29,66 +27,52 @@ function KitchenPanel() {
           <Plus size={16} aria-hidden /> Add an ingredient
         </div>
         <ul className="chip-list" aria-label="Ingredients added">
-          {PANTRY.map((p) => (
-            <li key={p} className="chip chip-on">
-              <Check size={14} weight="bold" aria-hidden /> {p}
+          {INGREDIENTS.map((name) => (
+            <li key={name} className="chip chip-on">
+              <Check size={14} weight="bold" aria-hidden /> {name}
             </li>
           ))}
         </ul>
-        <p className="mock-note">7 ingredients found. That&apos;s enough for 23 recipes.</p>
+        <p className="mock-note">every one checked against your allergies</p>
       </div>
-      <div className="scan">
-        <img src={img('pantry-board.jpg')} alt="" loading="lazy" width="700" height="467" />
-        <span className="scan-tag" style={{ left: '8%', top: '36%' }}>avocado</span>
-        <span className="scan-tag" style={{ left: '44%', top: '18%' }}>eggs</span>
-        <span className="scan-tag" style={{ left: '30%', top: '62%' }}>spinach</span>
-        <span className="scan-tag" style={{ left: '66%', top: '46%' }}>spring onion</span>
-        <span className="scan-cta">
-          <Camera size={16} aria-hidden /> Scan my fridge
-        </span>
+      <div className="meters">
+        <p className="mock-h">Your allergy profile</p>
+        <ul className="chip-list" aria-label="Allergies">
+          <li className="chip chip-warn"><ShieldCheck size={14} weight="bold" aria-hidden /> Tree nuts</li>
+          <li className="chip chip-warn"><ShieldCheck size={14} weight="bold" aria-hidden /> Shellfish</li>
+        </ul>
+        <p className="mock-text">Any recipe containing these is blocked before you see it.</p>
       </div>
     </div>
   );
 }
 
-function Meter({ label, value, pct }) {
-  return (
-    <div className="meter">
-      <div className="meter-row">
-        <span>{label}</span>
-        <b>{value}</b>
-      </div>
-      <div className="meter-track" aria-hidden>
-        <span style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function GoalsPanel() {
+function FiltersPanel() {
   return (
     <div className="mock-grid">
       <div>
-        <p className="mock-h">How do you eat?</p>
-        <ul className="chip-list" aria-label="Diet preferences">
-          <li className="chip chip-on"><Check size={14} weight="bold" aria-hidden /> Vegetarian</li>
-          <li className="chip">Vegan</li>
-          <li className="chip">Pescatarian</li>
-          <li className="chip">Keto</li>
-        </ul>
-        <p className="mock-h mock-h-sm">Leave out</p>
-        <ul className="chip-list" aria-label="Allergies">
-          <li className="chip chip-warn"><Check size={14} weight="bold" aria-hidden /> Tree nuts</li>
-          <li className="chip">Gluten</li>
-          <li className="chip">Shellfish</li>
+        <p className="mock-h">Shape the recipe</p>
+        <ul className="mock-filters">
+          {FILTERS.map(([label, value]) => (
+            <li key={label}><span>{label}</span><b>{value}</b></li>
+          ))}
         </ul>
       </div>
       <div className="meters">
-        <p className="mock-h">Tonight&apos;s targets</p>
-        <Meter label="Calories" value="550 kcal" pct={55} />
-        <Meter label="Protein" value="30 g or more" pct={70} />
-        <Meter label="Time" value="20 min or less" pct={33} />
-        <Meter label="Servings" value="2" pct={25} />
+        <p className="mock-h">Your daily goals</p>
+        <div className="meter"><div className="meter-row"><span>Calories</span><b>1,900 kcal</b></div></div>
+        <div className="meter">
+          <div className="meter-row"><span>Protein</span><b>25%</b></div>
+          <div className="meter-track" aria-hidden="true"><span style={{ width: '25%' }} /></div>
+        </div>
+        <div className="meter">
+          <div className="meter-row"><span>Carbs</span><b>45%</b></div>
+          <div className="meter-track" aria-hidden="true"><span style={{ width: '45%' }} /></div>
+        </div>
+        <div className="meter">
+          <div className="meter-row"><span>Fat</span><b>30%</b></div>
+          <div className="meter-track" aria-hidden="true"><span style={{ width: '30%' }} /></div>
+        </div>
       </div>
     </div>
   );
@@ -102,7 +86,7 @@ function RecipePanel() {
       </div>
       <div>
         <p className="mock-kicker">
-          <Sparkle size={14} weight="fill" aria-hidden /> Written for you just now
+          <Sparkle size={14} weight="fill" aria-hidden /> Example recipe
         </p>
         <p className="mock-title">Lemony spinach shakshuka with crispy chickpeas</p>
         <ul className="meta-list">
@@ -113,11 +97,10 @@ function RecipePanel() {
         <div className="recipe-split">
           <MacroRing kcal={520} protein={31} carbs={42} fat={24} size={112} />
           <div className="recipe-checks">
-            <p><Check size={16} weight="bold" aria-hidden /> Uses 6 of your 7 ingredients</p>
-            <p><Check size={16} weight="bold" aria-hidden /> Hits your protein goal</p>
-            <p className="recipe-missing">
-              <ShoppingCart size={16} aria-hidden /> Parsley added to your grocery list
-            </p>
+            <p><ShieldCheck size={16} weight="bold" aria-hidden /> Allergen check passed</p>
+            <p><Check size={16} weight="bold" aria-hidden /> Calories on target for dinner</p>
+            <p><Check size={16} weight="bold" aria-hidden /> Protein on target</p>
+            <p className="recipe-missing"><Sparkle size={16} aria-hidden /> Swap parsley for coriander</p>
           </div>
         </div>
       </div>
@@ -125,7 +108,7 @@ function RecipePanel() {
   );
 }
 
-const PANELS = { kitchen: KitchenPanel, goals: GoalsPanel, recipe: RecipePanel };
+const PANELS = { kitchen: KitchenPanel, goals: FiltersPanel, recipe: RecipePanel };
 
 export default function AppMock() {
   const [active, setActive] = useState(0);
@@ -164,7 +147,7 @@ export default function AppMock() {
       </div>
 
       <div className="browser">
-        <div className="browser-bar" aria-hidden>
+        <div className="browser-bar" aria-hidden="true">
           <span className="dots"><i /><i /><i /></span>
           <span className="browser-url">{step.url}</span>
         </div>

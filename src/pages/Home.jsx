@@ -25,7 +25,7 @@ function ProteinChart() {
 
   return (
     <figure className="journal-chart">
-      <figcaption>Protein per day since switching to NutriChef</figcaption>
+      <figcaption>Example: protein per day</figcaption>
       <svg
         viewBox={`0 0 ${w} ${h}`}
         role="img"
@@ -77,10 +77,10 @@ export default function Home() {
               <p className="hero-tagline">Cook what you have. Eat what you need.</p>
               <div className="hero-ctas">
                 <Link to="/signup" className="btn btn-primary btn-lg">
-                  Create your free account
+                  Get started free
                 </Link>
-                <Link to="/how-it-works" className="btn btn-ghost btn-lg">
-                  See how it works
+                <Link to="/dashboard/generate" className="btn btn-ghost btn-lg">
+                  Generate recipe
                 </Link>
               </div>
             </div>
@@ -126,8 +126,7 @@ export default function Home() {
               From a half-full fridge to dinner, in three moves.
             </h2>
             <p className="lede">
-              Here&apos;s the real thing. Click through the steps to see what you&apos;ll do in the
-              app and what you get back.
+              Click through the steps to see what you&apos;ll do in the app and what you get back.
             </p>
           </div>
           <AppMock />
@@ -152,10 +151,10 @@ export default function Home() {
             />
           </div>
 
-          <div className="journal" aria-label="Example page from your NutriChef recipe journal">
+          <div className="journal" aria-label="Example of saved recipes and progress in NutriChef AI">
             <article className="journal-page">
               <header className="journal-head">
-                <span>Your recipe journal</span>
+                <span>Saved recipe, example</span>
                 <span>p. 24</span>
               </header>
               <h3 className="journal-title">Sheet-pan harissa chickpeas</h3>
@@ -170,17 +169,17 @@ export default function Home() {
                 <li>2 tbsp harissa</li>
                 <li>Greek yogurt, to serve</li>
               </ul>
-              <span className="note journal-note">no food wasted this week</span>
+              <span className="note journal-note">allergen-checked</span>
             </article>
             <article className="journal-page journal-page-right">
               <header className="journal-head">
-                <span>Week 3 check-in</span>
+                <span>Your progress, example</span>
                 <span>p. 25</span>
               </header>
               <ProteinChart />
               <p className="journal-body">
-                Small swaps added up. Eggs at breakfast, beans in the lunch bowls, and dinners
-                sized to your goals put you on target by Friday.
+                An example of the progress view: log the recipes you cook and see how your week
+                compares with your goals.
               </p>
             </article>
           </div>
@@ -192,10 +191,10 @@ export default function Home() {
               Not another calorie app.
               <br />A cook who starts with your fridge.
             </p>
-            <h2 id="spread-title" className="visually-hidden">Your personal recipe journal</h2>
+            <h2 id="spread-title" className="visually-hidden">Your saved recipes and progress</h2>
             <p className="lede">
-              Every recipe you cook is saved to your journal, along with what it did for your week.
-              You see your progress without logging a single meal.
+              Save the recipes you love, log what you eat, and see how your day and week compare
+              with your goals.
             </p>
             <Link to="/features" className="text-link">
               Explore every feature

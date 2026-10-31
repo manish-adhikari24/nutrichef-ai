@@ -79,12 +79,6 @@
   padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px) 64px;
 }
 
-.dash-sample {
-  margin-bottom: var(--space-3);
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-
 .dash-title {
   margin-bottom: var(--space-5);
   font-family: var(--font-display);
@@ -155,10 +149,6 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: clamp(32px, 5vw, 64px);
   align-items: start;
-}
-
-.dash-columns-plan {
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
 }
 
 /* Rows shared by meals and pantry items */
@@ -395,94 +385,7 @@
 }
 
 /* Pantry */
-.pantry-groups {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-6) clamp(32px, 5vw, 64px);
-  align-items: start;
-}
-
-.pantry-soon {
-  grid-column: 1 / -1;
-  padding: 20px 24px 12px;
-  border: 1.5px solid var(--beet);
-  border-radius: var(--radius);
-}
-
-.pantry-soon .dash-row:last-child {
-  border-bottom: 0;
-}
-
-.soon-tag {
-  font-size: var(--step--1);
-  font-weight: 600;
-  color: var(--beet);
-  white-space: nowrap;
-}
-
 /* Meal plan */
-.plan-day {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
-  gap: 2px 16px;
-  padding-block: 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.plan-name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 8px;
-  grid-row: span 2;
-  align-self: start;
-  font-size: 0.95rem;
-  color: var(--ink-2);
-}
-
-.is-today .plan-name {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.today-tag {
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--beet);
-  color: var(--on-beet);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.plan-meal {
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  line-height: 1.15;
-}
-
-.plan-off {
-  font-style: italic;
-  color: var(--ink-2);
-}
-
-.plan-meta {
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-
-.grocery-list .check-row {
-  min-height: 44px;
-}
-
-.grocery-list .is-bought span {
-  color: var(--ink-2);
-  text-decoration: line-through;
-}
-
-.dash-columns-plan .link-btn {
-  margin-top: 10px;
-}
-
 /* Phones and small tablets: top bar and bottom tabs */
 @media (max-width: 860px) {
   .dash {
@@ -506,7 +409,7 @@
     position: fixed;
     inset: auto 0 0;
     z-index: 30;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
     padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
     background: var(--paper);
@@ -524,20 +427,12 @@
     padding-bottom: 104px;
   }
   .dash-today,
-  .dash-columns,
-  .dash-columns-plan,
-  .pantry-groups {
+  .dash-columns {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 480px) {
-  .plan-day {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .pantry-soon {
-    padding-inline: 16px;
-  }
   .dash-add-btn,
   .dash-add select,
   .dash-add > div {

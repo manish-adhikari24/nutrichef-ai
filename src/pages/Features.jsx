@@ -1,10 +1,12 @@
 import {
   Basket,
+  BookmarkSimple,
   ChartDonut,
   ArrowsClockwise,
-  CalendarBlank,
-  ShoppingCart,
-  Recycle,
+  Heart,
+  ShieldCheck,
+  Sparkle,
+  Pill,
 } from '@phosphor-icons/react';
 import SignupBand from '../components/SignupBand.jsx';
 import { img } from '../img.js';
@@ -12,39 +14,51 @@ import { img } from '../img.js';
 const FEATURES = [
   {
     icon: Basket,
-    title: 'Pantry-first recipes',
-    body: 'Type what you have or snap a photo of your fridge. Every recipe starts from your ingredients, not from a shopping trip.',
-    note: 'works with 3 ingredients or 30',
+    title: 'Ingredient-first recipes',
+    body: 'Type what you have or pick from suggestions. Every recipe starts with your ingredients, which helps cut food waste.',
+    note: 'works with 1 ingredient or 30',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Allergy checks on every recipe',
+    body: 'We compare your ingredients and each generated recipe with your allergy profile, and block anything that conflicts.',
+    note: 'still check your labels',
   },
   {
     icon: ChartDonut,
-    title: 'Portions that match your goals',
-    body: 'Set calorie, protein or fiber targets once. Each recipe is scaled so a serving lands where you want it.',
+    title: 'Nutrition you can see',
+    body: 'Every recipe shows calories, protein, carbs and fat per serving, with a clear pass or warning against your goals.',
     note: 'macros on every recipe',
   },
   {
     icon: ArrowsClockwise,
-    title: 'Swaps for anything missing',
-    body: 'Out of buttermilk? Allergic to nuts? NutriChef suggests a swap that keeps the dish working and tells you why.',
-    note: 'yogurt + lemon = buttermilk',
+    title: 'Safe ingredient swaps',
+    body: 'Missing something? We suggest alternatives that suit your allergies and diet, and tell you why each one works.',
+    note: 'lemon out, vinegar in',
   },
   {
-    icon: CalendarBlank,
-    title: 'Weekly plans that share ingredients',
-    body: 'Plan the nights you will cook. Recipes are chosen to reuse what you buy, so half a bunch of coriander never goes slimy again.',
-    note: 'leftovers have a plan too',
+    icon: Sparkle,
+    title: 'Filters that shape the recipe',
+    body: 'Choose the meal type, cuisine, prep time, difficulty and budget before you generate.',
+    note: 'tonight: quick and cheap',
   },
   {
-    icon: ShoppingCart,
-    title: 'A grocery list that writes itself',
-    body: 'Anything a recipe needs and you do not have goes straight onto one list, grouped by aisle.',
-    note: 'sorted by aisle',
+    icon: BookmarkSimple,
+    title: 'Saved recipes and history',
+    body: 'Save the recipes you love with a note and a rating, then search or filter them later.',
+    note: 'your own recipe book',
   },
   {
-    icon: Recycle,
-    title: 'Use-it-up alerts',
-    body: 'Tell it when you shop and it will nudge you before the spinach turns, with a recipe that uses it tonight.',
-    note: 'less food in the bin',
+    icon: Pill,
+    title: 'Optional supplement notes',
+    body: 'General ideas based on your goals and nutrition gaps, always with a safety disclaimer. You can turn them off.',
+    note: 'information, not advice',
+  },
+  {
+    icon: Heart,
+    title: 'Dashboard and wellness',
+    body: 'Track today\'s calories, macros and water, and get general activity suggestions for your goal.',
+    note: 'not medical advice',
   },
 ];
 
@@ -57,8 +71,8 @@ export default function Features() {
             Everything it does, in plain words.
           </h1>
           <p className="lede page-lede">
-            NutriChef AI does one job well: it turns the food you have into meals you want to
-            eat, sized for the goals you set.
+            NutriChef AI turns the food you have into meals you want to eat, checked for your
+            allergies and sized for your goals.
           </p>
         </div>
       </section>
