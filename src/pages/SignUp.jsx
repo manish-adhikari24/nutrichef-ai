@@ -2,29 +2,17 @@ import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout.jsx';
 import PasswordField from '../components/PasswordField.jsx';
+import PasswordChecklist, { meetsPasswordRules } from '../components/PasswordChecklist.jsx';
 import TermsDialog from '../components/TermsDialog.jsx';
 import { register } from '../lib/api.js';
 import { img } from '../img.js';
-
-function passwordStrength(password) {
-  if (!password) return null;
-  let score = 0;
-  if (password.length >= 8) score += 1;
-  if (password.length >= 12) score += 1;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
-  if (/\d/.test(password)) score += 1;
-  if (/[^a-zA-Z0-9]/.test(password)) score += 1;
-  if (score <= 1) return { level: 1, label: 'Weak: use at least 8 characters' };
-  if (score <= 3) return { level: 2, label: 'Good: add symbols or length to make it stronger' };
-  return { level: 3, label: 'Strong' };
-}
 
 function validate(v) {
   const errors = {};
   if (!v.firstName.trim()) errors.firstName = 'Enter your first name.';
   if (!v.lastName.trim()) errors.lastName = 'Enter your last name.';
   if (!/^\S+@\S+\.\S+$/.test(v.email.trim())) errors.email = 'Enter a valid email address.';
-  if (v.password.length < 8) errors.password = 'Use at least 8 characters.';
+  if (!meetsPasswordRules(v.password)) errors.password = 'Your password needs to meet every requirement in the list.';
   if (v.confirm !== v.password || !v.confirm) errors.confirm = 'Passwords do not match.';
   if (!v.terms) errors.terms = 'Accept the Terms and Conditions to create your account.';
   return errors;
@@ -55,7 +43,6 @@ export default function SignUp() {
     setValues((v) => ({ ...v, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   };
   const blur = (key) => () => setTouched((t) => ({ ...t, [key]: true }));
-  const strength = passwordStrength(values.password);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -66,10 +53,10 @@ export default function SignUp() {
     }
     setBusy(true);
     try {
-      await register(values);
-      navigate('/dashboard/profile', { state: { setup: true } });
+      const result = await register(values);
+      navigate('/verify-email', { state: { email: result.email } });
     } catch (error) {
-      setServerError(error.message);
+      setServerError(error.fields?.password ?? error.message);
       setBusy(false);
     }
   }
@@ -134,12 +121,7 @@ export default function SignUp() {
           onBlur={blur('password')}
           error={show('password')}
         />
-        {strength && (
-          <div className="strength" data-level={strength.level}>
-            <span className="strength-bar" aria-hidden="true"><i /><i /><i /></span>
-            <span className="field-hint" role="status">Strength: {strength.label}</span>
-          </div>
-        )}
+        <PasswordChecklist password={values.password} />
         <PasswordField
           id="su-confirm"
           label="Confirm password"

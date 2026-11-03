@@ -11,6 +11,8 @@ import Reviews from './pages/Reviews.jsx';
 import Story from './pages/Story.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Login from './pages/Login.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Dashboard from './pages/dashboard/Dashboard.jsx';
 import GenerateRecipe from './pages/dashboard/GenerateRecipe.jsx';
@@ -33,6 +35,8 @@ const TITLES = {
   '/our-story': 'Our story | NutriChef AI',
   '/signup': 'Create your account | NutriChef AI',
   '/login': 'Sign in | NutriChef AI',
+  '/verify-email': 'Verify your email | NutriChef AI',
+  '/forgot-password': 'Reset your password | NutriChef AI',
   '/dashboard': 'Dashboard | NutriChef AI',
   '/dashboard/generate': 'Generate recipe | NutriChef AI',
   '/dashboard/saved': 'Saved recipes | NutriChef AI',
@@ -86,6 +90,8 @@ export default function App() {
           <Route path="/our-story" element={<Story />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/signin" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Route>

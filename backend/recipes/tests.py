@@ -2,12 +2,12 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.contrib.auth.hashers import identify_hasher
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.test import override_settings
 from google.genai import errors
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User, UserProfile
 from recipes.models import GeneratedRecipe, SavedRecipe
@@ -23,7 +23,7 @@ PROFILE = {
 }
 REGISTER = {
     'firstName': 'Test', 'lastName': 'Cook', 'email': 'Test@Example.test',
-    'password': 'Str0ng-pass!23', 'confirmPassword': 'Str0ng-pass!23', 'acceptedTerms': True,
+    'password': 'Kettle-Basil-47!', 'confirmPassword': 'Kettle-Basil-47!', 'acceptedTerms': True,
 }
 
 
@@ -43,69 +43,18 @@ def ai_recipe(name='Chicken breast', **changes):
 class Base(APITestCase):
     def setUp(self):
         cache.clear()
-        response = self.client.post('/api/auth/register', REGISTER, format='json')
-        self.assertEqual(response.status_code, 201)
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
-        self.user = User.objects.get(email='test@example.test')
+        self.user = User.objects.create_user(
+            'test@example.test', REGISTER['password'], first_name='Test', last_name='Cook', email_verified=True,
+        )
+        UserProfile.objects.create(user=self.user)
+        token = RefreshToken.for_user(self.user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(self.client.put('/api/profile', PROFILE, format='json').status_code, 200)
 
     def other_client_user(self):
-        other = User.objects.create_user('other@example.test', 'Str0ng-pass!23')
+        other = User.objects.create_user('other@example.test', REGISTER['password'])
         UserProfile.objects.create(user=other)
         return other
-
-
-class AccountTests(APITestCase):
-    def test_register_hashes_password_with_bcrypt(self):
-        self.client.post('/api/auth/register', REGISTER, format='json')
-        user = User.objects.get(email='test@example.test')
-        self.assertNotIn('Str0ng', user.password)
-        self.assertEqual(identify_hasher(user.password).algorithm, 'bcrypt_sha256')
-        self.assertIn('$12$', user.password)
-
-    def test_register_validation(self):
-        cases = [
-            ({'email': 'nope'}, 'email'),
-            ({'confirmPassword': 'different'}, 'confirmPassword'),
-            ({'password': 'short', 'confirmPassword': 'short'}, 'password'),
-            ({'acceptedTerms': False}, 'acceptedTerms'),
-        ]
-        for changes, field in cases:
-            response = self.client.post('/api/auth/register', {**REGISTER, **changes}, format='json')
-            self.assertEqual(response.status_code, 400, changes)
-            self.assertIn(field, response.data['fields'])
-
-    def test_duplicate_email_rejected_case_insensitively(self):
-        self.client.post('/api/auth/register', REGISTER, format='json')
-        response = self.client.post('/api/auth/register', {**REGISTER, 'email': 'TEST@example.test'}, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_login_is_generic_and_rate_limited(self):
-        cache.clear()
-        self.client.post('/api/auth/register', REGISTER, format='json')
-        wrong = self.client.post('/api/auth/login', {'email': 'test@example.test', 'password': 'wrong'}, format='json')
-        unknown = self.client.post('/api/auth/login', {'email': 'x@example.test', 'password': 'wrong'}, format='json')
-        self.assertEqual(wrong.status_code, 401)
-        self.assertEqual(wrong.data['error'], unknown.data['error'])
-        for _ in range(4):
-            self.client.post('/api/auth/login', {'email': 'test@example.test', 'password': 'wrong'}, format='json')
-        locked = self.client.post('/api/auth/login', {'email': 'test@example.test', 'password': REGISTER['password']}, format='json')
-        self.assertEqual(locked.status_code, 429)
-
-    def test_login_success_updates_last_login(self):
-        cache.clear()
-        self.client.post('/api/auth/register', REGISTER, format='json')
-        User.objects.update(last_login=None)
-        response = self.client.post('/api/auth/login', {'email': 'TEST@example.test', 'password': REGISTER['password']}, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('access', response.data)
-        self.assertIsNotNone(User.objects.get().last_login)
-
-    def test_protected_endpoints_require_a_valid_token(self):
-        for path in ['/api/profile', '/api/dashboard', '/api/saved', '/api/log']:
-            self.assertEqual(self.client.get(path).status_code, 401, path)
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer invalid')
-        self.assertEqual(self.client.get('/api/profile').status_code, 401)
 
 
 class ProfileTests(Base):

@@ -19,6 +19,8 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    email_verified = models.BooleanField(default=False)
+    password_changed_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -74,3 +76,35 @@ class UserAllergy(models.Model):
         db_table = 'user_allergies'
         constraints = [models.UniqueConstraint(fields=['user', 'name'], name='unique_user_allergy')]
         ordering = ['id']
+
+
+class OneTimeCode(models.Model):
+    """A 6-digit email code, stored only as a keyed hash."""
+
+    VERIFY = 'verify'
+    LOGIN = 'login'
+    RESET = 'reset'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='codes')
+    purpose = models.CharField(max_length=10)
+    code_hash = models.CharField(max_length=64)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'one_time_codes'
+        indexes = [models.Index(fields=['user', 'purpose', 'created_at'])]
+
+
+class TrustedDevice(models.Model):
+    """A browser where the person chose to stay signed in, skipping the sign-in code for 30 days."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trusted_devices')
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'trusted_devices'

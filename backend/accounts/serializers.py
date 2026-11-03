@@ -31,8 +31,9 @@ class RegisterSerializer(serializers.Serializer):
     def validate(self, data):
         if data['password'] != data['confirmPassword']:
             raise serializers.ValidationError({'confirmPassword': 'Passwords do not match.'})
+        candidate = User(email=data['email'], first_name=data['firstName'], last_name=data['lastName'])
         try:
-            validate_password(data['password'])
+            validate_password(data['password'], candidate)
         except DjangoValidationError as error:
             raise serializers.ValidationError({'password': error.messages[0]}) from error
         return data

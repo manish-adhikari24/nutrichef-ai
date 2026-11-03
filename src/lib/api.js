@@ -2,6 +2,8 @@
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const ACCESS = 'nc-access';
 const REFRESH = 'nc-refresh';
+// Lets this browser skip the sign-in code for 30 days after "Keep me signed in".
+const DEVICE = 'nc-device';
 
 export class ApiError extends Error {
   constructor(message, { status, code, allergens, fields } = {}) {
@@ -21,10 +23,11 @@ function getToken(key) {
   }
 }
 
-function setTokens({ access, refresh }) {
+function setTokens({ access, refresh, deviceToken }) {
   try {
     localStorage.setItem(ACCESS, access);
     if (refresh) localStorage.setItem(REFRESH, refresh);
+    if (deviceToken) localStorage.setItem(DEVICE, deviceToken);
   } catch {
     // Without storage, the person has to sign in again next visit.
   }
@@ -92,8 +95,9 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 
 /* ---------- Accounts ---------- */
 
+// Creates the account and emails a verification code. No tokens until it's verified.
 export async function register(values) {
-  setTokens(await request('auth/register', {
+  return request('auth/register', {
     method: 'POST',
     auth: false,
     body: {
@@ -104,11 +108,40 @@ export async function register(values) {
       confirmPassword: values.confirm,
       acceptedTerms: values.terms,
     },
-  }));
+  });
 }
 
+export async function verifyEmail(email, code, keepSignedIn) {
+  setTokens(await request('auth/verify-email', { method: 'POST', auth: false, body: { email, code, keepSignedIn } }));
+}
+
+// Returns { ticket } when an email code is needed, or signs straight in on a trusted device.
 export async function login(email, password) {
-  setTokens(await request('auth/login', { method: 'POST', auth: false, body: { email, password } }));
+  const data = await request('auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { email, password, deviceToken: getToken(DEVICE) },
+  });
+  if (data.ticket) return { ticket: data.ticket };
+  setTokens(data);
+  return {};
+}
+
+export async function verifyLogin(ticket, code, keepSignedIn) {
+  setTokens(await request('auth/login/verify', { method: 'POST', auth: false, body: { ticket, code, keepSignedIn } }));
+}
+
+export const resendCode = (body) => request('auth/resend-code', { method: 'POST', auth: false, body });
+export const forgotPassword = (email) => request('auth/password/forgot', { method: 'POST', auth: false, body: { email } });
+export const resetPassword = (body) => request('auth/password/reset', { method: 'POST', auth: false, body });
+
+export async function forgetTrustedDevices() {
+  await request('auth/devices', { method: 'DELETE' });
+  try {
+    localStorage.removeItem(DEVICE);
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
 }
 
 export async function deleteAccount() {

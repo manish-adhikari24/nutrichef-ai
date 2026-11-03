@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { deleteAccount, saveProfile } from '../../lib/api.js';
+import { deleteAccount, forgetTrustedDevices, saveProfile } from '../../lib/api.js';
 
 export default function Settings() {
   const { profile, setProfile } = useOutletContext();
@@ -19,6 +19,15 @@ export default function Settings() {
     try {
       setProfile(await saveProfile({ ...profile, [key]: on }));
       setStatus(`${label} turned ${on ? 'on' : 'off'}.`);
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
+  async function forgetDevices() {
+    try {
+      await forgetTrustedDevices();
+      setStatus('Every device will need an email code next time you sign in.');
     } catch (error) {
       setStatus(error.message);
     }
@@ -49,6 +58,15 @@ export default function Settings() {
           <span>Show wellness suggestions on the dashboard</span>
         </label>
         <p role="status" className="profile-status">{status}</p>
+      </section>
+
+      <section aria-labelledby="devices-title" className="profile-section">
+        <h2 id="devices-title" className="dash-h2">Signed-in devices</h2>
+        <p className="settings-text">
+          Devices where you chose &ldquo;Keep me signed in&rdquo; skip the email code for 30 days. If you&apos;ve
+          lost a device or used a shared computer, make every device ask for a code again.
+        </p>
+        <button type="button" className="btn btn-ghost" onClick={forgetDevices}>Require a code on all devices</button>
       </section>
 
       <section aria-labelledby="data-title" className="profile-section">

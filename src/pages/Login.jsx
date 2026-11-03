@@ -1,20 +1,24 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout.jsx';
+import CodeForm from '../components/CodeForm.jsx';
 import PasswordField from '../components/PasswordField.jsx';
-import { isSignedIn, login } from '../lib/api.js';
+import { isSignedIn, login, resendCode, verifyLogin } from '../lib/api.js';
 import { img } from '../img.js';
 
 export default function Login() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
+  const [keep, setKeep] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [ticket, setTicket] = useState(null);
 
   if (isSignedIn()) return <Navigate to={state?.from ?? '/dashboard'} replace />;
+  const done = () => navigate(state?.from ?? '/dashboard');
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -26,12 +30,43 @@ export default function Login() {
     if (Object.keys(found).length) return;
     setBusy(true);
     try {
-      await login(email, password);
-      navigate(state?.from ?? '/dashboard');
+      const result = await login(email, password);
+      if (result.ticket) {
+        setTicket(result.ticket);
+        setBusy(false);
+      } else {
+        done();
+      }
     } catch (error) {
+      if (error.code === 'verify_email') {
+        navigate('/verify-email', { state: { email: error.email ?? email, sent: true } });
+        return;
+      }
       setFormError(error.message);
       setBusy(false);
     }
+  }
+
+  if (ticket) {
+    return (
+      <AuthLayout
+        title="Check your email"
+        intro="For your security, enter the code we just sent to finish signing in."
+        image={img('harvest-bowl.jpg')}
+        imageAlt="A colorful bowl of chickpeas, avocado, sweet potato and tomatoes from above"
+        note="nearly there"
+      >
+        <CodeForm
+          email={email.trim().toLowerCase()}
+          submitLabel="Sign in"
+          onSubmit={async (code) => {
+            await verifyLogin(ticket, code, keep);
+            done();
+          }}
+          onResend={() => resendCode({ purpose: 'login', ticket })}
+        />
+      </AuthLayout>
+    );
   }
 
   return (
@@ -42,6 +77,7 @@ export default function Login() {
       imageAlt="A colorful bowl of chickpeas, avocado, sweet potato and tomatoes from above"
       note="your kitchen missed you"
     >
+      {state?.notice && !formError && <p className="form-notice" role="status">{state.notice}</p>}
       {formError && <p className="error-summary" role="alert">{formError}</p>}
       <form className="auth-form" onSubmit={onSubmit} noValidate>
         <div className="field">
@@ -65,6 +101,16 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
+        <div className="login-row">
+          <label className="check-row">
+            <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+            <span>Keep me signed in on this device</span>
+          </label>
+          <Link to="/forgot-password" state={{ email }} className="inline-link">Forgot password?</Link>
+        </div>
+        <p className="field-hint keep-hint">
+          With this on, you won&apos;t need an email code here for 30 days. Don&apos;t use it on shared computers.
+        </p>
         <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
