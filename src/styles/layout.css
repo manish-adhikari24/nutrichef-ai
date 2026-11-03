@@ -405,6 +405,11 @@ input::placeholder {
   opacity: 0.8;
 }
 
+/* The example text clears as soon as a box is selected. */
+input:focus::placeholder {
+  color: transparent;
+}
+
 input:hover {
   border-color: var(--ink-2);
 }
