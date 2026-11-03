@@ -1,19 +1,17 @@
-"""Writes recipes with Gemini. The API key stays on the server (FR-05, NFR-05).
+"""Writes recipes with Claude. The API key stays on the server (FR-05, NFR-05).
 
-Google's free tier allows human review of prompts and says not to submit sensitive or
-personal information. So prompts carry no name, age, body details or health labels:
-allergies and dislikes go only as an anonymous list of ingredients to avoid.
+Prompts carry no name, age or body details. Allergies and dislikes go only as an
+anonymous list of ingredients to avoid, and the server checks every recipe itself.
 """
 import json
 import logging
 import os
 
-from google import genai
-from google.genai import errors, types
+import anthropic
 
 logger = logging.getLogger(__name__)
 
-MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
+MODEL = 'claude-opus-5-5'
 MAX_ATTEMPTS = 2
 
 SYSTEM_PROMPT = """You are the recipe writer for NutriChef AI, an app for home cooks.
@@ -117,36 +115,36 @@ Extra notes: {r.get('notes') or 'none'}
 
 def write_recipe(request):
     """Returns a validated recipe, retrying once if the reply is malformed."""
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
+    if not os.environ.get('ANTHROPIC_API_KEY'):
         raise NotConfigured
-    client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=55_000))
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT,
-        response_mime_type='application/json',
-        response_json_schema=RECIPE_SCHEMA,
-        max_output_tokens=16000,
-    )
+    client = anthropic.Anthropic(timeout=55.0, max_retries=1)
     prompt = build_prompt(request)
     for _attempt in range(MAX_ATTEMPTS):
         try:
-            response = client.models.generate_content(model=MODEL, contents=prompt, config=config)
-        except errors.ClientError as error:
-            logger.warning('Recipe generation failed with status %s', error.code)
-            if error.code in (400, 401, 403) and 'API' in str(error.status or '') + str(error.message or ''):
-                raise NotConfigured from error
-            raise Unavailable from error
-        except (errors.APIError, OSError) as error:
+            response = client.beta.messages.create(
+                model=MODEL,
+                max_tokens=16000,
+                betas=['server-side-fallback-2026-07-01'],
+                fallbacks='default',
+                output_config={'effort': 'low', 'format': {'type': 'json_schema', 'schema': RECIPE_SCHEMA}},
+                system=SYSTEM_PROMPT,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+        except anthropic.AuthenticationError as error:
+            logger.error('Anthropic API key was rejected')
+            raise NotConfigured from error
+        except anthropic.APIError as error:
             logger.warning('Recipe generation failed: %s', type(error).__name__)
             raise Unavailable from error
 
-        feedback = getattr(response, 'prompt_feedback', None)
-        if feedback is not None and getattr(feedback, 'block_reason', None):
+        if response.stop_reason == 'refusal':
             raise Refused
-        try:
-            recipe = json.loads(response.text or '')
-        except (json.JSONDecodeError, TypeError, ValueError):
-            continue
-        if is_valid_recipe(recipe):
-            return recipe
+        if response.stop_reason != 'max_tokens':
+            text = next((b.text for b in reversed(response.content) if b.type == 'text'), '')
+            try:
+                recipe = json.loads(text)
+            except json.JSONDecodeError:
+                continue
+            if is_valid_recipe(recipe):
+                return recipe
     raise Malformed

@@ -230,9 +230,8 @@ export default function Profile() {
             <input type="checkbox" checked={form.healthConsent} onChange={(e) => update('healthConsent', e.target.checked)} />
             <span>
               Use my diet, targets and foods to avoid (including my allergies) to personalise AI
-              recipes. I understand these are sent to our AI provider, Google, without my name or
-              body details. Google may process them outside Australia, and its reviewers may read them
-              to improve its products.
+              recipes. I understand these are sent to our AI provider, Anthropic, without my name or
+              body details, and may be processed outside Australia.
             </span>
           </label>
           <p className="field-hint">

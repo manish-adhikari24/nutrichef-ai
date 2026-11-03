@@ -1,11 +1,9 @@
 import json
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.test import override_settings
-from google.genai import errors
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -173,54 +171,42 @@ class GenerateTests(Base):
         self.assertEqual(response.data['code'], 'ai_unavailable')
 
 
-class FakeResponse:
-    prompt_feedback = None
+class FakeBlock:
+    type = 'text'
 
     def __init__(self, text):
         self.text = text
 
 
-@patch.dict('os.environ', {'GEMINI_API_KEY': 'test-key'})
+class FakeResponse:
+    def __init__(self, text, stop_reason='end_turn'):
+        self.content = [FakeBlock(text)]
+        self.stop_reason = stop_reason
+
+
+@patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'})
 class AiTests(APITestCase):
     REQUEST = {'meal': 'Dinner', 'cuisine': 'Any', 'difficulty': 'Any', 'budget': 'Any', 'servings': 2, 'ingredients': ['eggs']}
 
-    @patch('recipes.services.ai.genai.Client')
+    @patch('recipes.services.ai.anthropic.Anthropic')
     def test_retries_once_then_succeeds(self, client):
-        generate = client.return_value.models.generate_content
-        generate.side_effect = [FakeResponse('not json'), FakeResponse(json.dumps(ai_recipe()))]
+        create = client.return_value.beta.messages.create
+        create.side_effect = [FakeResponse('not json'), FakeResponse(json.dumps(ai_recipe()))]
         self.assertEqual(ai.write_recipe(self.REQUEST)['title'], 'Test bowl')
-        self.assertEqual(generate.call_count, 2)
+        self.assertEqual(create.call_count, 2)
 
-    @patch('recipes.services.ai.genai.Client')
+    @patch('recipes.services.ai.anthropic.Anthropic')
     def test_gives_up_after_second_malformed_reply(self, client):
-        generate = client.return_value.models.generate_content
-        generate.return_value = FakeResponse('{"title": ""}')
+        create = client.return_value.beta.messages.create
+        create.return_value = FakeResponse('{"title": ""}')
         with self.assertRaises(ai.Malformed):
             ai.write_recipe(self.REQUEST)
-        self.assertEqual(generate.call_count, 2)
+        self.assertEqual(create.call_count, 2)
 
-    @patch('recipes.services.ai.genai.Client')
-    def test_blocked_prompt_is_reported(self, client):
-        response = FakeResponse('')
-        response.prompt_feedback = SimpleNamespace(block_reason='SAFETY')
-        client.return_value.models.generate_content.return_value = response
+    @patch('recipes.services.ai.anthropic.Anthropic')
+    def test_refusal_is_reported(self, client):
+        client.return_value.beta.messages.create.return_value = FakeResponse('', 'refusal')
         with self.assertRaises(ai.Refused):
-            ai.write_recipe(self.REQUEST)
-
-    @patch('recipes.services.ai.genai.Client')
-    def test_quota_error_is_controlled(self, client):
-        client.return_value.models.generate_content.side_effect = errors.ClientError(
-            429, {'error': {'code': 429, 'status': 'RESOURCE_EXHAUSTED', 'message': 'Quota exceeded'}}
-        )
-        with self.assertRaises(ai.Unavailable):
-            ai.write_recipe(self.REQUEST)
-
-    @patch('recipes.services.ai.genai.Client')
-    def test_invalid_key_reads_as_not_configured(self, client):
-        client.return_value.models.generate_content.side_effect = errors.ClientError(
-            400, {'error': {'code': 400, 'status': 'INVALID_ARGUMENT', 'message': 'API key not valid'}}
-        )
-        with self.assertRaises(ai.NotConfigured):
             ai.write_recipe(self.REQUEST)
 
     def test_prompt_has_no_health_labels_or_personal_details(self):

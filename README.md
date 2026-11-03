@@ -24,12 +24,12 @@ cp .env.example .env
 .venv/Scripts/python manage.py runserver 8000
 ```
 
-Run the tests with `.venv/Scripts/python manage.py test`. Add `GEMINI_API_KEY` to `backend/.env` to generate real AI recipes.
+Run the tests with `.venv/Scripts/python manage.py test`. Add `ANTHROPIC_API_KEY` to `backend/.env` to generate real AI recipes.
 
 ## Deploying
 
 - **Database:** PostgreSQL on Neon's free plan. Copy its connection string, including `sslmode=require`.
-- **Backend:** `render.yaml` defines the API on Render. Add `DATABASE_URL` and `GEMINI_API_KEY` in the Render dashboard. Set `GEMINI_MODEL` to change the model.
+- **Backend:** `render.yaml` defines the API on Render. Add `DATABASE_URL`, `ANTHROPIC_API_KEY`, `BREVO_API_KEY` and `EMAIL_FROM` in the Render dashboard.
 - **Frontend:** on Vercel, set `VITE_API_URL` to the Render URL.
 
 ## Pages
