@@ -103,7 +103,10 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
     'EXCEPTION_HANDLER': 'nutrichef.exceptions.api_exception_handler',
-    'DEFAULT_THROTTLE_RATES': {'generate': os.environ.get('GENERATE_RATE', '10/hour')},
+    'DEFAULT_THROTTLE_RATES': {
+        'generate': os.environ.get('GENERATE_RATE', '10/hour'),
+        'assistant': os.environ.get('ASSISTANT_RATE', '30/hour'),
+    },
 }
 
 SIMPLE_JWT = {

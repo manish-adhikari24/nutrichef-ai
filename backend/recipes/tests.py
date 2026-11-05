@@ -284,3 +284,58 @@ class ErrorFormatTests(APITestCase):
         response = self.client.get('/api/profile')
         self.assertEqual(response.status_code, 401)
         self.assertIn('error', response.data)
+
+
+class FakeAnswer:
+    stop_reason = 'end_turn'
+
+    def __init__(self, text):
+        self.content = [FakeBlock(text)]
+
+
+@patch.dict('os.environ', {'RECIPE_ASSISTANT_ENABLED': '1', 'ANTHROPIC_API_KEY': 'test-key'})
+class AssistantTests(Base):
+    def make_recipe(self, user=None):
+        return GeneratedRecipe.objects.create(
+            user=user or self.user, title='Test bowl', meal_type='Dinner', difficulty='Easy', cooking_time=20, servings=2,
+            calories=500, protein_g=30, carbs_g=50, fat_g=18, nutrition_source='calculated',
+            content={'description': '', 'ingredients': [{'name': 'Eggs', 'amount': '2', 'missing': False}], 'steps': ['Cook.'], 'why_it_fits': '', 'label_checks': [], 'constraint_warning': ''},
+        )
+
+    def ask(self, recipe, messages):
+        return self.client.post(f'/api/recipes/{recipe.id}/ask', {'messages': messages}, format='json')
+
+    @patch('recipes.services.assistant.anthropic.Anthropic')
+    def test_answers_with_recipe_and_avoid_list(self, client):
+        client.return_value.messages.create.return_value = FakeAnswer('Use a lid.')
+        response = self.ask(self.make_recipe(), [{'role': 'user', 'content': 'How do I keep it moist?'}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['answer'], 'Use a lid.')
+        sent = client.return_value.messages.create.call_args.kwargs
+        self.assertEqual(sent['model'], 'claude-haiku-5-5')
+        first = sent['messages'][0]['content']
+        self.assertIn('<recipe>', first)
+        self.assertIn('<avoid>Soy, kiwi</avoid>', first)
+        self.assertNotIn('Test Cook', first)
+
+    @patch('recipes.services.assistant.anthropic.Anthropic')
+    def test_no_consent_sends_no_avoid_list(self, client):
+        client.return_value.messages.create.return_value = FakeAnswer('Sure.')
+        self.client.put('/api/profile', {**PROFILE, 'healthConsent': False}, format='json')
+        self.ask(self.make_recipe(), [{'role': 'user', 'content': 'Can I freeze it?'}])
+        self.assertIn('<avoid>none listed</avoid>', client.return_value.messages.create.call_args.kwargs['messages'][0]['content'])
+
+    def test_other_peoples_recipes_are_forbidden(self):
+        other = self.make_recipe(user=self.other_client_user())
+        self.assertEqual(self.ask(other, [{'role': 'user', 'content': 'Hi'}]).status_code, 403)
+
+    def test_message_rules(self):
+        recipe = self.make_recipe()
+        self.assertEqual(self.ask(recipe, [{'role': 'assistant', 'content': 'Hi'}]).status_code, 400)
+        self.assertEqual(self.ask(recipe, [{'role': 'user', 'content': 'x' * 501}]).status_code, 400)
+        turns = [{'role': 'user', 'content': 'a'}, {'role': 'user', 'content': 'b'}]
+        self.assertEqual(self.ask(recipe, turns).status_code, 400)
+
+    def test_switched_off_by_default(self):
+        with patch.dict('os.environ', {'RECIPE_ASSISTANT_ENABLED': ''}):
+            self.assertEqual(self.ask(self.make_recipe(), [{'role': 'user', 'content': 'Hi'}]).status_code, 404)

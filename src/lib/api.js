@@ -194,6 +194,8 @@ export function allAllergies(profile) {
 
 export const generateRecipe = (body) => request('recipes/generate', { method: 'POST', body });
 export const sampleRecipe = (body) => request('recipes/sample', { method: 'POST', body });
+export const askAboutRecipe = (recipeId, messages) =>
+  request(`recipes/${recipeId}/ask`, { method: 'POST', body: { messages } });
 
 export function listSaved({ page = 1, tag = '', q = '' } = {}) {
   const params = new URLSearchParams({ page });

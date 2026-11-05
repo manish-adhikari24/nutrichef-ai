@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from .models import ConsumedMeal, GeneratedRecipe, SavedRecipe, WaterLog
 from .seed_data import SAMPLE_RECIPES
-from .services import ai
+from .services import ai, assistant
 from .services.allergens import find_allergens
 from .services.nutrition import (
     assess_recipe,
@@ -210,6 +210,54 @@ class SampleRecipeView(BaseGenerateView):
             return error
         recipe = SAMPLE_RECIPES[next(SAMPLE_CYCLE) % len(SAMPLE_RECIPES)]
         return self.finish(request, data, recipe, 'sample', allergies)
+
+
+class AskRequest(serializers.Serializer):
+    class Turn(serializers.Serializer):
+        role = serializers.ChoiceField(choices=['user', 'assistant'])
+        content = serializers.CharField(max_length=2000)
+
+    messages = serializers.ListField(child=Turn(), allow_empty=False, max_length=12)
+
+    def validate_messages(self, messages):
+        if messages[-1]['role'] != 'user':
+            raise serializers.ValidationError('End with your question.')
+        if len(messages[-1]['content']) > 500:
+            raise serializers.ValidationError('Keep your question under 500 characters.')
+        if any(m['role'] == ('assistant' if i % 2 == 0 else 'user') for i, m in enumerate(messages)):
+            raise serializers.ValidationError('Questions and answers must take turns.')
+        return messages
+
+
+class RecipeAssistantView(APIView):
+    """Answers cooking questions about one of the person's own recipes."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'assistant'
+
+    def post(self, request, pk):
+        if not assistant.enabled():
+            return Response({'error': 'We could not find that.'}, status=status.HTTP_404_NOT_FOUND)
+        recipe = get_object_or_404(GeneratedRecipe, pk=pk)
+        if recipe.user_id != request.user.id:
+            raise PermissionDenied
+        body = AskRequest(data=request.data)
+        body.is_valid(raise_exception=True)
+
+        profile = request.user.profile
+        # Same consent rule as recipe generation: foods to avoid only go with consent.
+        avoid = []
+        if profile.health_consent:
+            avoid = user_allergies(request.user) + ([profile.dislikes] if profile.dislikes else [])
+        try:
+            answer = assistant.ask(recipe, avoid, body.validated_data['messages'])
+        except ai.NotConfigured:
+            return Response({'code': 'not_configured', 'error': "The assistant isn't connected yet."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except ai.Refused:
+            return Response({'error': "I can't help with that. Try a question about cooking this recipe."}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        except ai.Unavailable:
+            return Response({'error': "The assistant couldn't answer right now. Try again in a moment."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'answer': answer})
 
 
 def saved_payload(item, user):

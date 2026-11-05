@@ -814,3 +814,59 @@ input[type='range'] {
   border-radius: var(--radius);
   font-weight: 500;
 }
+
+/* Recipe assistant (trial) */
+.assistant {
+  margin-block: var(--space-5);
+  padding: 18px 22px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.assistant .dash-h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assistant-intro {
+  margin-bottom: 12px;
+  color: var(--ink-2);
+}
+
+.assistant-log {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  margin-bottom: 12px;
+  overflow-y: auto;
+}
+
+.assistant-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.assistant-msg.is-user {
+  justify-self: end;
+  background: var(--beet);
+  color: var(--on-beet);
+}
+
+.assistant-msg.is-bot {
+  justify-self: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.assistant-suggestions {
+  margin-bottom: 12px;
+}
+
+.assistant .dash-add {
+  align-items: flex-end;
+}

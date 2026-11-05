@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import RecipeAssistant from './RecipeAssistant.jsx';
 import { Check, CheckCircle, ShieldCheck, Sparkle, Timer, UsersThree, Warning, WarningCircle } from '@phosphor-icons/react';
 
 const NUTRITION_SOURCES = {
@@ -142,6 +143,8 @@ export default function RecipeCard({ recipe, accepted = {}, onAccept, children }
           <p className="disclaimer"><Warning size={16} weight="fill" aria-hidden /> {supplements[0].disclaimer}</p>
         </section>
       )}
+
+      {import.meta.env.VITE_RECIPE_ASSISTANT === '1' && recipe.id && <RecipeAssistant recipe={recipe} />}
 
       <p className="recipe-disclaimer">
         AI can make mistakes. If you have an allergy, check every ingredient and label yourself.
