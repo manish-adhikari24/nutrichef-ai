@@ -1,16 +1,20 @@
+// Progress page: a 7-day calorie chart and a day-by-day table.
 import { Link, useOutletContext } from 'react-router-dom';
 import LoadStatus from '../../components/LoadStatus.jsx';
 import { getLog } from '../../lib/api.js';
 import { dailyTargets, intakeStatus } from '../../lib/nutrition.js';
 import { useLoad } from '../../lib/useLoad.js';
 
+// Formats numbers with thousands separators, e.g. 2,400.
 const fmt = (n) => n.toLocaleString('en-US');
 
 export default function Progress() {
   const { profile } = useOutletContext();
+  // The last 7 days of logged meals.
   const { data, error, loading, reload } = useLoad(getLog);
   const targets = dailyTargets(profile);
 
+  // Still loading, or loading failed.
   if (!data) {
     return (
       <>
@@ -20,13 +24,17 @@ export default function Progress() {
     );
   }
 
+  // Label each day with a short weekday name, and the last one as "Today".
   const days = data.days.map((d, index) => ({
     ...d,
     // Noon avoids the date shifting across time zones when parsed.
     day: index === data.days.length - 1 ? 'Today' : new Date(`${d.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short' }),
   }));
+  // Only days with something logged.
   const logged = days.filter((d) => d.kcal > 0);
+  // The chart's top value: at least 2,400, and enough room for the goal and the highest day.
   const scaleMax = Math.max(2400, (targets?.kcal ?? 0) * 1.15, ...days.map((d) => d.kcal * 1.1));
+  // Turns calories into a bar height as a percentage.
   const pct = (value) => `${(value / scaleMax) * 100}%`;
 
   return (
@@ -43,11 +51,13 @@ export default function Progress() {
             <h2 id="chart-title" className="dash-h2">Calories, last 7 days</h2>
             <figure className="bars-figure">
               <div className="bars" role="group" aria-label="Calories per day for the last 7 days">
+                {/* The goal line across the chart. */}
                 {targets && (
                   <div className="bars-goal" style={{ bottom: pct(targets.kcal) }}>
                     <span>Goal {fmt(targets.kcal)}</span>
                   </div>
                 )}
+                {/* One bar per day. Each can be focused with the keyboard and has a text label. */}
                 {days.map((d) => {
                   const label = `${d.day}: ${fmt(d.kcal)} kcal`;
                   return (
@@ -58,6 +68,7 @@ export default function Progress() {
                   );
                 })}
               </div>
+              {/* Day names under the bars. */}
               <div className="bars-days" aria-hidden="true">
                 {days.map((d) => <span key={d.date}>{d.day}</span>)}
               </div>

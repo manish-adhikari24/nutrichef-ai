@@ -1,24 +1,33 @@
+# Render blueprint: how to build and run the Django API.
 services:
   - type: web
     name: nutrichef-api
     runtime: python
     plan: free
+    # Same region as the Neon database, so queries are fast.
     region: singapore
+    # The Django project lives in the backend folder.
     rootDir: backend
     buildCommand: bash build.sh
+    # One worker with 4 threads fits the free plan's memory. A long timeout leaves room for AI requests.
     startCommand: gunicorn nutrichef.wsgi:application --workers 1 --threads 4 --timeout 120
+    # Render checks this URL to know the service is healthy.
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0
+      # Render makes a random secret key.
       - key: DJANGO_SECRET_KEY
         generateValue: true
+      # "sync: false" means the value is typed into the Render dashboard, never stored in Git.
       - key: DATABASE_URL
         sync: false
+      # Only the live website may call the API from a browser.
       - key: CORS_ALLOWED_ORIGINS
         value: https://nutrichef-ai-chi.vercel.app
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Brevo sends the verification and sign-in code emails.
       - key: BREVO_API_KEY
         sync: false
       - key: EMAIL_FROM

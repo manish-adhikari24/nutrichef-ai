@@ -1,5 +1,6 @@
 // Shared two-column layout for the sign-up and login pages.
 export default function AuthLayout({ title, intro, children, image, imageAlt, note }) {
+  // Left column: heading, intro and the form. Right column: a photo with an optional handwritten note.
   return (
     <section className="auth" aria-labelledby="auth-title">
       <div className="wrap auth-grid">

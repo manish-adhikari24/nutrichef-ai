@@ -2,12 +2,14 @@
 // <html>, <head> and <body> wrapper. Writes share/nutrichef-ai.html.
 import { readFileSync, writeFileSync } from 'node:fs';
 
+// Read the built page and pull out the script, stylesheet, fonts link and theme script.
 const built = readFileSync('share/index.html', 'utf8');
 const script = built.match(/<script type="module"[^>]*src="([^"]+)"/)[1];
 const style = built.match(/<link rel="stylesheet"[^>]*href="(\.\/assets\/[^"]+\.css)"/)[1];
 const fonts = built.match(/<link\s+rel="stylesheet"\s+href="(https:\/\/fonts[^"]+)"/)[1];
 const themeScript = built.match(/<script>[\s\S]*?<\/script>/)[0];
 
+// Build the cut-down page Artifacts expects (no <html>/<head>/<body>).
 const page = `<title>NutriChef AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

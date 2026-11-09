@@ -11,12 +11,16 @@ from .models import User
 
 class PasswordAwareRefreshSerializer(TokenRefreshSerializer):
     def validate(self, attrs):
+        # Find who the refresh token belongs to.
         token = RefreshToken(attrs['refresh'])
         user = User.objects.filter(pk=token.get('user_id')).first()
+        # Refuse it if the account was deleted or the password changed since it was issued.
         if user is None or issued_before_password_change(user, token):
             raise AuthenticationFailed('Please sign in again.')
+        # Otherwise do the normal checks and return a new access token.
         return super().validate(attrs)
 
 
+# The /api/auth/refresh endpoint, using the stricter check above.
 class PasswordAwareRefreshView(TokenRefreshView):
     serializer_class = PasswordAwareRefreshSerializer

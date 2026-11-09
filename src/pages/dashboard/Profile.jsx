@@ -1,15 +1,19 @@
+// Profile page: personal details, body and activity, nutrition goals, food preferences and consent (FR-03).
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { allAllergies, EMPTY_HEALTH, saveProfile } from '../../lib/api.js';
 import { ACTIVITY, bmi, bmiCategory, GOALS, suggestTargets } from '../../lib/nutrition.js';
 
+// Diet choices (they match the server's list).
 const DIETS = ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Low carb'];
+// The three macro sliders.
 const MACROS = [
   { key: 'proteinPct', label: 'Protein' },
   { key: 'carbsPct', label: 'Carbs' },
   { key: 'fatPct', label: 'Fat' },
 ];
 
+// A labelled form field with optional hint and error text.
 function Field({ id, label, hint, error, children }) {
   return (
     <div className="field">
@@ -21,6 +25,7 @@ function Field({ id, label, hint, error, children }) {
   );
 }
 
+// Browser-side checks. Blank body details are allowed, because they're optional.
 function validate(p) {
   const errors = {};
   const inRange = (value, min, max) => value === '' || (Number(value) >= min && Number(value) <= max);
@@ -39,14 +44,17 @@ export default function Profile() {
   const { profile, setProfile } = useOutletContext();
   const { state } = useLocation();
   const navigate = useNavigate();
+  // The form starts as a copy of the saved profile.
   const [form, setForm] = useState(profile);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('');
 
+  // Change one field and clear the "saved" message.
   const update = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
     setStatus('');
   };
+  // Props that connect an input to a form field, including its error message for screen readers.
   const bind = (key) => ({
     value: form[key],
     onChange: (e) => update(key, e.target.value),
@@ -54,12 +62,14 @@ export default function Profile() {
     'aria-describedby': errors[key] ? `p-${key}-error` : undefined,
   });
 
+  // Values worked out live as the user types.
   const suggested = suggestTargets(form);
   const macroTotal = form.proteinPct + form.carbsPct + form.fatPct;
   const allergies = allAllergies(form);
   const under18 = Number(form.age) > 0 && Number(form.age) < 18;
   const bmiValue = bmi(form);
 
+  // Fill in the suggested calories and macro split.
   function applySuggested() {
     if (!suggested) return;
     const { calorieTarget, proteinPct, carbsPct, fatPct } = suggested;
@@ -68,6 +78,7 @@ export default function Profile() {
     setStatus('');
   }
 
+  // Check, save, then update the shared profile. First-time setup goes on to the dashboard.
   async function save(e) {
     e.preventDefault();
     const found = validate(form);
@@ -85,12 +96,14 @@ export default function Profile() {
         return;
       }
       setStatus('Profile saved.');
+    // Show the server's field errors next to the right inputs.
     } catch (error) {
       setErrors(error.fields ?? {});
       setStatus(error.message);
     }
   }
 
+  // Clear body details, targets, allergies and consent (back to the defaults).
   async function removeHealthDetails() {
     try {
       const saved = await saveProfile({ ...form, ...EMPTY_HEALTH });
@@ -112,6 +125,7 @@ export default function Profile() {
       </p>
 
       <form className="profile-form" onSubmit={save} noValidate>
+        {/* Name. */}
         <section className="profile-section" aria-labelledby="p-about">
           <h2 id="p-about" className="dash-h2">About you</h2>
           <div className="profile-grid">
@@ -124,6 +138,7 @@ export default function Profile() {
           </div>
         </section>
 
+        {/* Age, sex, height, weight, activity and goal, with BMI and an under-18 note. */}
         <section className="profile-section" aria-labelledby="p-body">
           <h2 id="p-body" className="dash-h2">Body and activity</h2>
           <div className="profile-grid">
@@ -165,6 +180,7 @@ export default function Profile() {
           )}
         </section>
 
+        {/* Suggested targets, calorie target and macro sliders that must total 100%. */}
         <section className="profile-section" aria-labelledby="p-targets">
           <h2 id="p-targets" className="dash-h2">Nutrition goals</h2>
           <div className="suggest-row">
@@ -208,6 +224,7 @@ export default function Profile() {
           </fieldset>
         </section>
 
+        {/* Diet, dislikes and a link to the allergy profile. */}
         <section className="profile-section" aria-labelledby="p-food">
           <h2 id="p-food" className="dash-h2">Food preferences</h2>
           <Field id="p-diet" label="Dietary preference">
@@ -224,6 +241,7 @@ export default function Profile() {
           </p>
         </section>
 
+        {/* Consent to send diet, targets and foods to avoid to the AI. */}
         <section className="profile-section" aria-labelledby="p-consent">
           <h2 id="p-consent" className="dash-h2">Your consent</h2>
           <label className="check-row consent-row">
@@ -239,6 +257,7 @@ export default function Profile() {
           </p>
         </section>
 
+        {/* Save, remove health details, and the status message. */}
         <div className="profile-actions">
           <button type="submit" className="btn btn-primary btn-lg">
             {state?.setup ? 'Save and go to dashboard' : 'Save profile'}

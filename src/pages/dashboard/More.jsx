@@ -3,6 +3,7 @@ import { NAV_GROUPS } from '../../components/DashboardLayout.jsx';
 
 // Phone menu for the pages that don't fit in the bottom bar.
 export default function More() {
+  // Every menu group except "Main", which is already in the bottom bar.
   const groups = NAV_GROUPS.filter((group) => group.label !== 'Main');
   return (
     <>

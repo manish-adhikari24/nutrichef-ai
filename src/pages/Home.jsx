@@ -1,3 +1,4 @@
+// Home page: hero, manifesto, app preview, journal-style example spread and the sign-up band.
 import { Link } from 'react-router-dom';
 import { Egg, Lemon, Pan } from '../components/Doodles.jsx';
 import AppMock from '../components/AppMock.jsx';
@@ -15,12 +16,16 @@ const WEEK = [
   { d: 'Sun', g: 96 },
 ];
 
+// Small line chart of the sample week, drawn in SVG.
 function ProteinChart() {
+  // Chart size and highest value.
   const w = 300;
   const h = 150;
   const max = 110;
+  // Turn a day number into an x position and grams into a y position.
   const x = (i) => 26 + i * ((w - 40) / 6);
   const y = (g) => h - 22 - (g / max) * (h - 36);
+  // SVG path through every day's point.
   const line = WEEK.map((p, i) => `${i ? 'L' : 'M'}${x(i)} ${y(p.g)}`).join(' ');
 
   return (
@@ -31,10 +36,12 @@ function ProteinChart() {
         role="img"
         aria-label="Daily protein rose from 62 grams on Monday to 96 grams on Sunday, reaching the 90 gram target by Friday."
       >
+        {/* Dashed target line and its label. */}
         <line x1="20" x2={w - 6} y1={y(90)} y2={y(90)} className="chart-target" />
         <text x={22} y={y(90) - 6} textAnchor="start" className="chart-label">
           target 90 g
         </text>
+        {/* The protein line, with a dot and day name for each day. */}
         <path d={line} className="chart-line" />
         {WEEK.map((p, i) => (
           <g key={p.d}>

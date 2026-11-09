@@ -1,4 +1,6 @@
+/* Layout, type, buttons, header, footer, forms and chips shared by every page. */
 /* ---------- Shared layout and type ---------- */
+/* Centred page width with side padding. */
 .wrap {
   width: 100%;
   max-width: 1240px;
@@ -6,6 +8,7 @@
   padding-inline: clamp(16px, 4vw, 40px);
 }
 
+/* Vertical spacing between page sections. */
 .section {
   padding-block: clamp(56px, 9vw, 112px);
 }
@@ -15,6 +18,7 @@
   margin-bottom: var(--space-6);
 }
 
+/* Big serif headlines. */
 .display-1 {
   font-family: var(--font-display);
   font-weight: 400;
@@ -32,6 +36,7 @@
   letter-spacing: -0.01em;
 }
 
+/* Larger intro paragraph. */
 .lede {
   font-size: var(--step-1);
   line-height: 1.55;
@@ -40,6 +45,7 @@
   margin-top: var(--space-3);
 }
 
+/* Underlined text link with a coloured underline. */
 .text-link {
   display: inline-block;
   margin-top: var(--space-4);
@@ -65,6 +71,7 @@
   gap: 6px;
 }
 
+/* Arrow and doodle sizes. */
 .note-arrow {
   color: var(--herb);
   width: 44px;
@@ -104,6 +111,7 @@
     border-color var(--dur-fast) ease, transform var(--dur-fast) ease;
 }
 
+/* Button pressed and disabled states. */
 .btn:active {
   transform: scale(0.97);
 }
@@ -114,6 +122,7 @@
   transform: none;
 }
 
+/* Filled beetroot button for the main action. */
 .btn-primary {
   background: var(--beet);
   color: var(--on-beet);
@@ -123,6 +132,7 @@
   background: var(--beet-hover);
 }
 
+/* Outline button for secondary actions. */
 .btn-ghost {
   border-color: var(--line-strong);
   color: var(--ink);
@@ -133,6 +143,7 @@
   border-color: var(--ink);
 }
 
+/* Button sizes. */
 .btn-sm {
   min-height: 40px;
   padding: 8px 16px;
@@ -148,6 +159,7 @@
   width: 100%;
 }
 
+/* Round icon-only button. */
 .icon-btn {
   display: inline-grid;
   place-items: center;
@@ -164,6 +176,7 @@
   background: var(--paper-2);
 }
 
+/* A button that looks like a link. */
 .link-btn {
   border: 0;
   background: none;
@@ -196,6 +209,7 @@
 }
 
 /* ---------- Header ---------- */
+/* Sticky header with a frosted background. */
 .site-header {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
@@ -217,6 +231,7 @@
   flex-shrink: 0;
 }
 
+/* Desktop menu links. */
 .main-nav {
   display: flex;
   gap: var(--space-5);
@@ -260,10 +275,12 @@
   display: none;
 }
 
+/* Phone menu, hidden until opened. */
 .mobile-menu {
   display: none;
 }
 
+/* Narrow screens: hide the desktop menu and show the menu button. */
 @media (max-width: 960px) {
   .main-nav {
     display: none;
@@ -300,6 +317,7 @@
   }
 }
 
+/* Phones: hide the header sign-up button to save space. */
 @media (max-width: 560px) {
   .header-signup {
     display: none;
@@ -309,6 +327,7 @@
   }
 }
 
+/* Phone menu slide-in animation. */
 @keyframes menu-in {
   from {
     opacity: 0;
@@ -359,6 +378,7 @@
   color: var(--ink-2);
 }
 
+/* Phones: footer in one column. */
 @media (max-width: 760px) {
   .footer-grid {
     grid-template-columns: 1fr;
@@ -366,6 +386,7 @@
 }
 
 /* ---------- Forms ---------- */
+/* A form field: label, input, hint and error stacked. */
 .field {
   display: grid;
   gap: 6px;
@@ -386,6 +407,7 @@
   margin-left: 6px;
 }
 
+/* Text inputs share one look. */
 input[type='email'],
 input[type='text'],
 input[type='password'],
@@ -410,6 +432,7 @@ input:focus::placeholder {
   color: transparent;
 }
 
+/* Hover, focus and invalid states for inputs. */
 input:hover {
   border-color: var(--ink-2);
 }
@@ -424,6 +447,7 @@ input[aria-invalid='true'] {
   border-color: var(--danger);
 }
 
+/* Hint text under a field, and error text in the danger colour. */
 .field-hint {
   font-size: var(--step--1);
   color: var(--ink-2);
@@ -435,6 +459,7 @@ input[aria-invalid='true'] {
   color: var(--danger);
 }
 
+/* Password box with the show/hide button inside it. */
 .password-wrap {
   position: relative;
 }
@@ -450,6 +475,7 @@ input[aria-invalid='true'] {
   transform: translateY(-50%);
 }
 
+/* Checkbox with its label beside it. */
 .check-row {
   display: flex;
   gap: 10px;
@@ -471,6 +497,7 @@ input[aria-invalid='true'] {
   gap: 8px;
 }
 
+/* Rounded tag. */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -485,18 +512,21 @@ input[aria-invalid='true'] {
   background: transparent;
 }
 
+/* Selected chip. */
 .chip-on {
   border-color: var(--beet);
   background: color-mix(in srgb, var(--beet) 12%, transparent);
   color: var(--ink);
 }
 
+/* Warning chip (e.g. an allergy). */
 .chip-warn {
   border-color: var(--herb);
   background: color-mix(in srgb, var(--herb) 14%, transparent);
   color: var(--ink);
 }
 
+/* Chip that wraps a hidden checkbox. */
 .chip-check {
   position: relative;
   min-height: 40px;
@@ -554,6 +584,7 @@ input[aria-invalid='true'] {
   margin-bottom: 8px;
 }
 
+/* Email box and button side by side. */
 .inline-field {
   display: flex;
   gap: 8px;
@@ -592,6 +623,7 @@ input[aria-invalid='true'] {
   outline-color: var(--saffron);
 }
 
+/* Tablets: stack the sign-up band. */
 @media (max-width: 860px) {
   .signup-band-inner {
     grid-template-columns: 1fr;
@@ -599,6 +631,7 @@ input[aria-invalid='true'] {
   }
 }
 
+/* Phones: stack the email box and button. */
 @media (max-width: 520px) {
   .inline-field {
     flex-direction: column;

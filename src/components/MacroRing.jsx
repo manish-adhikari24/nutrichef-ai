@@ -7,10 +7,12 @@ const SEGMENTS = [
 ];
 
 export default function MacroRing({ protein, carbs, fat, kcal, size = 132 }) {
+  // Ring maths: r is the radius and c the circumference. Each segment's length is its share of c.
   const values = { protein, carbs, fat };
   const total = protein + carbs + fat;
   const r = 42;
   const c = 2 * Math.PI * r;
+  // Where the next segment starts.
   let offset = 0;
 
   return (
@@ -22,7 +24,9 @@ export default function MacroRing({ protein, carbs, fat, kcal, size = 132 }) {
         role="img"
         aria-label={`${kcal} calories: ${protein} grams protein, ${carbs} grams carbs, ${fat} grams fat`}
       >
+        {/* Grey background ring. */}
         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--line)" strokeWidth="10" />
+        {/* One coloured arc per macro, each starting where the previous one ended. */}
         {SEGMENTS.map((s) => {
           const len = (values[s.key] / total) * c;
           const el = (
@@ -42,6 +46,7 @@ export default function MacroRing({ protein, carbs, fat, kcal, size = 132 }) {
           offset += len;
           return el;
         })}
+        {/* Calories in the middle. */}
         <text x="50" y="49" textAnchor="middle" className="ring-num">
           {kcal}
         </text>
@@ -49,6 +54,7 @@ export default function MacroRing({ protein, carbs, fat, kcal, size = 132 }) {
           kcal
         </text>
       </svg>
+      {/* Text legend under the ring. */}
       <figcaption className="macro-legend">
         {SEGMENTS.map((s) => (
           <span key={s.key}>

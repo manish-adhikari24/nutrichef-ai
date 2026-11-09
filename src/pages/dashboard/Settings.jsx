@@ -1,20 +1,25 @@
+// Settings page: suggestion toggles, trusted devices and account deletion (FR-02, FR-11, FR-16).
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { deleteAccount, forgetTrustedDevices, saveProfile } from '../../lib/api.js';
 
 export default function Settings() {
+  // The profile is shared from DashboardLayout, so changes here show everywhere.
   const { profile, setProfile } = useOutletContext();
   const navigate = useNavigate();
   const [status, setStatus] = useState('');
+  // Whether the "Delete all your data?" dialog is open.
   const [confirming, setConfirming] = useState(false);
   const dialogRef = useRef(null);
 
+  // Open or close the native confirm dialog to match `confirming`.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (confirming && !dialog.open) dialog.showModal();
     if (!confirming && dialog.open) dialog.close();
   }, [confirming]);
 
+  // Save one on/off setting to the profile and show a short confirmation.
   async function toggle(key, on, label) {
     try {
       setProfile(await saveProfile({ ...profile, [key]: on }));
@@ -24,6 +29,7 @@ export default function Settings() {
     }
   }
 
+  // Forget every "Keep me signed in" device, so they all need an email code again.
   async function forgetDevices() {
     try {
       await forgetTrustedDevices();
@@ -33,6 +39,7 @@ export default function Settings() {
     }
   }
 
+  // Delete the account on the server, then go to the home page.
   async function erase() {
     try {
       await deleteAccount();
@@ -47,6 +54,7 @@ export default function Settings() {
     <>
       <h1 className="dash-title">Settings</h1>
 
+      {/* Supplement and wellness toggles. */}
       <section aria-labelledby="sugg-title" className="profile-section">
         <h2 id="sugg-title" className="dash-h2">Suggestions</h2>
         <label className="check-row profile-check">
@@ -60,6 +68,7 @@ export default function Settings() {
         <p role="status" className="profile-status">{status}</p>
       </section>
 
+      {/* Trusted devices. */}
       <section aria-labelledby="devices-title" className="profile-section">
         <h2 id="devices-title" className="dash-h2">Signed-in devices</h2>
         <p className="settings-text">
@@ -69,6 +78,7 @@ export default function Settings() {
         <button type="button" className="btn btn-ghost" onClick={forgetDevices}>Require a code on all devices</button>
       </section>
 
+      {/* Account deletion, with a confirmation dialog. */}
       <section aria-labelledby="data-title" className="profile-section">
         <h2 id="data-title" className="dash-h2">Your data</h2>
         <p className="settings-text">

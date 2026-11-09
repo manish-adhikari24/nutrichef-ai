@@ -1,14 +1,17 @@
+// Interactive app preview on the marketing pages: three tabs showing the main steps, inside a pretend browser window.
 import { useRef, useState } from 'react';
 import { Check, Plus, ShieldCheck, Sparkle, Timer, UsersThree, Leaf as LeafIcon } from '@phosphor-icons/react';
 import MacroRing from './MacroRing.jsx';
 import { img } from '../img.js';
 
+// The three tabs, and the fake address shown for each.
 const STEPS = [
   { id: 'kitchen', label: 'Add your ingredients', url: 'nutrichef.ai/generate' },
   { id: 'goals', label: 'Choose your filters', url: 'nutrichef.ai/generate' },
   { id: 'recipe', label: 'Get your recipe', url: 'nutrichef.ai/recipe' },
 ];
 
+// Example data for the preview.
 const INGREDIENTS = ['Eggs', 'Spinach', 'Lemon', 'Chickpeas', 'Tomato', 'Garlic'];
 const FILTERS = [
   ['Meal type', 'Dinner'],
@@ -18,6 +21,7 @@ const FILTERS = [
   ['Budget', 'Low'],
 ];
 
+// Tab 1: ingredients added and the allergy profile.
 function KitchenPanel() {
   return (
     <div className="mock-grid">
@@ -47,6 +51,7 @@ function KitchenPanel() {
   );
 }
 
+// Tab 2: recipe filters and daily goals.
 function FiltersPanel() {
   return (
     <div className="mock-grid">
@@ -78,6 +83,7 @@ function FiltersPanel() {
   );
 }
 
+// Tab 3: an example finished recipe with its macro ring and checks.
 function RecipePanel() {
   return (
     <div className="mock-grid mock-grid-recipe">
@@ -108,14 +114,18 @@ function RecipePanel() {
   );
 }
 
+// Which panel goes with each tab.
 const PANELS = { kitchen: KitchenPanel, goals: FiltersPanel, recipe: RecipePanel };
 
 export default function AppMock() {
+  // Index of the selected tab.
   const [active, setActive] = useState(0);
+  // The tab buttons, so arrow keys can move focus between them.
   const tabRefs = useRef([]);
   const step = STEPS[active];
   const Panel = PANELS[step.id];
 
+  // Left and right arrow keys move between tabs, wrapping round at each end.
   function onKeyDown(e) {
     const delta = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
     if (delta === undefined) return;
@@ -127,6 +137,7 @@ export default function AppMock() {
 
   return (
     <div className="app-mock">
+      {/* The tab buttons (accessible tab pattern). */}
       <div className="mock-tabs" role="tablist" aria-label="NutriChef AI in three steps" onKeyDown={onKeyDown}>
         {STEPS.map((s, i) => (
           <button
@@ -146,6 +157,7 @@ export default function AppMock() {
         ))}
       </div>
 
+      {/* The pretend browser showing the selected panel. */}
       <div className="browser">
         <div className="browser-bar" aria-hidden="true">
           <span className="dots"><i /><i /><i /></span>

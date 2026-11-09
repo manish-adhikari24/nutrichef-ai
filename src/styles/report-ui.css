@@ -1,3 +1,4 @@
+/* Styles added to meet the project report: form feedback, dashboard, generate, recipe card, saved, progress, profile, help and more. */
 /* Form feedback */
 .error-summary {
   margin-bottom: var(--space-4);
@@ -21,6 +22,7 @@
   font-weight: 600;
 }
 
+/* Small note box for demo or sample content. */
 .demo-note {
   margin-bottom: var(--space-4);
   padding: 10px 14px;
@@ -30,6 +32,7 @@
   color: var(--ink-2);
 }
 
+/* Password strength bar. */
 .strength {
   margin: calc(var(--space-3) * -1) 0 var(--space-3);
 }
@@ -56,6 +59,7 @@
   background: var(--herb);
 }
 
+/* Red button for destructive actions such as delete. */
 .btn-danger {
   background: var(--danger);
   color: var(--paper);
@@ -93,6 +97,7 @@
   cursor: pointer;
 }
 
+/* Phones: the menu shows only the main links, with short labels and a "More" link. */
 @media (max-width: 860px) {
   .dash-group {
     display: contents;
@@ -148,6 +153,7 @@
   text-underline-offset: 3px;
 }
 
+/* Summary cards on the dashboard home. */
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -183,6 +189,7 @@
   color: var(--ink-2);
 }
 
+/* Water + and - buttons. */
 .water-controls {
   display: flex;
   align-items: center;
@@ -196,6 +203,7 @@
   cursor: not-allowed;
 }
 
+/* Quick action links. */
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -220,6 +228,7 @@
   border-color: var(--beet);
 }
 
+/* "Under / Near / Above target" text. */
 .status-label {
   margin-left: 6px;
   font-style: normal;
@@ -228,6 +237,7 @@
   color: var(--ink);
 }
 
+/* Wellness tip card. */
 .wellness {
   margin-top: var(--space-6);
   padding: 20px 24px;
@@ -245,6 +255,7 @@
   max-width: 66ch;
 }
 
+/* Disclaimer text with a warning icon. */
 .disclaimer {
   display: flex;
   gap: 6px;
@@ -277,6 +288,7 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* Chips that are buttons. */
 .chip-btn {
   min-height: 40px;
   cursor: pointer;
@@ -287,6 +299,7 @@
   border-color: var(--ink-2);
 }
 
+/* The added-ingredients list. */
 .added-list li {
   display: flex;
   justify-content: space-between;
@@ -305,6 +318,7 @@
   text-transform: none;
 }
 
+/* An ingredient that matches an allergy. */
 .added-list .is-conflict {
   border-left: 3px solid var(--danger);
 }
@@ -319,6 +333,7 @@
   text-transform: none;
 }
 
+/* Grid of filter drop-downs. */
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -337,6 +352,7 @@
   color: var(--ink);
 }
 
+/* Range sliders use the brand colour. */
 input[type='range'] {
   width: 100%;
   accent-color: var(--beet);
@@ -351,6 +367,7 @@ input[type='range'] {
   margin-bottom: 8px;
 }
 
+/* Generate button row. */
 .generate-action {
   display: flex;
   flex-wrap: wrap;
@@ -368,6 +385,7 @@ input[type='range'] {
 }
 
 /* Recipe card */
+/* "Sample recipe" label. */
 .sample-tag {
   display: inline-block;
   padding: 4px 10px;
@@ -385,6 +403,7 @@ input[type='range'] {
   margin-top: var(--space-3);
 }
 
+/* The allergen check result line. */
 .safety-pass {
   display: flex;
   gap: 8px;
@@ -406,6 +425,7 @@ input[type='range'] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Warning when nutrition numbers look unusual. */
 .estimate-warning {
   display: flex;
   align-items: center;
@@ -415,6 +435,7 @@ input[type='range'] {
   font-weight: 500;
 }
 
+/* Goal alignment list with pass and warning icons. */
 .alignment {
   display: grid;
   gap: 8px;
@@ -438,6 +459,7 @@ input[type='range'] {
   color: var(--danger);
 }
 
+/* Ingredient swaps. */
 .subs {
   display: grid;
   gap: 14px;
@@ -447,6 +469,7 @@ input[type='range'] {
   margin-bottom: 6px;
 }
 
+/* Supplement notes box. */
 .supplement-box {
   margin-block: var(--space-4);
   padding: 18px 22px;
@@ -466,6 +489,7 @@ input[type='range'] {
   max-width: 640px;
 }
 
+/* Save, log and regenerate buttons under a recipe. */
 .recipe-actions {
   display: flex;
   flex-wrap: wrap;
@@ -554,6 +578,7 @@ input[type='range'] {
   border-top-width: 1px;
 }
 
+/* Previous / Next page buttons. */
 .pagination {
   display: flex;
   justify-content: center;
@@ -562,6 +587,7 @@ input[type='range'] {
   margin-top: var(--space-4);
 }
 
+/* Confirmation pop-up (delete recipe, delete account). */
 .confirm-dialog {
   width: min(460px, calc(100vw - 32px));
   padding: 24px;
@@ -624,6 +650,7 @@ input[type='range'] {
   flex: 1 1 280px;
 }
 
+/* One macro slider row: label, slider and value. */
 .macro-row {
   display: grid;
   grid-template-columns: 4.5rem minmax(0, 1fr) 3rem;
@@ -649,6 +676,7 @@ input[type='range'] {
 }
 
 /* Help and More */
+/* Help questions that open and close. */
 .help-list details {
   max-width: 720px;
   border-bottom: 1px solid var(--line);
@@ -665,6 +693,7 @@ input[type='range'] {
   color: var(--ink-2);
 }
 
+/* Links on the More page. */
 .more-link {
   display: flex;
   align-items: center;
@@ -697,6 +726,7 @@ input[type='range'] {
   padding-top: 0;
 }
 
+/* Big statistics on the Results page. */
 .result-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -724,6 +754,7 @@ input[type='range'] {
   color: var(--ink-2);
 }
 
+/* Medium screens: one-column Generate page, and two columns of cards. */
 @media (max-width: 1000px) {
   .generate-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -734,6 +765,7 @@ input[type='range'] {
   }
 }
 
+/* Phones: one column. */
 @media (max-width: 720px) {
   .result-stats {
     grid-template-columns: minmax(0, 1fr);
@@ -801,12 +833,14 @@ input[type='range'] {
   font-weight: 600;
 }
 
+/* Small phones: password rules in one column. */
 @media (max-width: 480px) {
   .password-rules ul {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
+/* Green success message, e.g. after a password reset. */
 .form-notice {
   margin-bottom: var(--space-4);
   padding: 14px 18px;

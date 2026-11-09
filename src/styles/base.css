@@ -1,14 +1,18 @@
+/* Base styles: a reset and sensible defaults for every page. */
+/* Width and height include padding and borders. */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+/* Stop phones resizing text, and keep anchored headings clear of the sticky header. */
 html {
   -webkit-text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-h) + 16px);
 }
 
+/* Page background, text colour and font, with a smooth change when switching theme. */
 body {
   margin: 0;
   background: var(--paper);
@@ -21,6 +25,7 @@ body {
   transition: background-color var(--dur) ease, color var(--dur) ease;
 }
 
+/* Images and icons scale down to fit their container. */
 img,
 svg {
   display: block;
@@ -31,6 +36,7 @@ img {
   height: auto;
 }
 
+/* Remove default margins. Headings and paragraphs wrap more evenly. */
 h1,
 h2,
 h3,
@@ -48,6 +54,7 @@ p {
   text-wrap: pretty;
 }
 
+/* Lists have no bullets or indent unless a component adds them. */
 ul,
 ol {
   margin: 0;
@@ -55,6 +62,7 @@ ol {
   list-style: none;
 }
 
+/* Links, buttons and inputs use the surrounding font and colour. */
 a {
   color: inherit;
 }
@@ -69,21 +77,25 @@ button {
   cursor: pointer;
 }
 
+/* A clear saffron outline for keyboard focus. */
 :focus-visible {
   outline: 3px solid var(--saffron);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
+/* No outline when focus moves to the main area after a page change. */
 main:focus {
   outline: none;
 }
 
+/* Highlighted text colour. */
 ::selection {
   background: var(--saffron);
   color: #1c1a17;
 }
 
+/* Hides content visually but keeps it for screen readers. */
 .visually-hidden {
   position: absolute !important;
   width: 1px;
@@ -96,6 +108,7 @@ main:focus {
   border: 0;
 }
 
+/* "Skip to content" link: off screen until focused with the keyboard. */
 .skip-link {
   position: absolute;
   left: 16px;
@@ -112,6 +125,7 @@ main:focus {
   top: 12px;
 }
 
+/* Turn animations off for people who ask their system for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

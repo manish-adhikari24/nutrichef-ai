@@ -1,3 +1,4 @@
+// Verify Email page: enter the 6-digit code emailed after sign-up (FR-01).
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout.jsx';
@@ -6,10 +7,13 @@ import { resendCode, verifyEmail } from '../lib/api.js';
 import { img } from '../img.js';
 
 export default function VerifyEmail() {
+  // The email is passed from the sign-up or login page.
   const { state } = useLocation();
   const navigate = useNavigate();
+  // "Keep me signed in" checkbox.
   const [keep, setKeep] = useState(false);
 
+  // Opened directly without an email: send them to login.
   if (!state?.email) return <Navigate to="/login" replace />;
 
   return (
@@ -23,6 +27,7 @@ export default function VerifyEmail() {
       <CodeForm
         email={state.email}
         submitLabel="Verify and continue"
+        // Correct code: the API returns tokens, then the profile page opens for first-time setup.
         onSubmit={async (code) => {
           await verifyEmail(state.email, code, keep);
           navigate('/dashboard/profile', { state: { setup: true } });

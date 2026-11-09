@@ -7,6 +7,7 @@ export default function SignupBand({ heading = 'Your first recipe is one sign-up
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
 
+  // Go to sign-up with the email already filled in.
   function onSubmit(e) {
     e.preventDefault();
     navigate('/signup', { state: { email } });

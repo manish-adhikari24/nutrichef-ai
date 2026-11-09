@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+// Seconds before "Send a new code" can be clicked (matches the server's cooldown).
 const RESEND_SECONDS = 60;
 
 // The 6-digit email code step, shared by sign-up, sign-in and password reset.
@@ -8,8 +9,10 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  // Countdown until the user can resend.
   const [wait, setWait] = useState(RESEND_SECONDS);
 
+  // Count down once a second until it reaches 0.
   useEffect(() => {
     if (wait <= 0) return undefined;
     const timer = setTimeout(() => setWait((w) => w - 1), 1000);
@@ -18,6 +21,7 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
 
   async function submit(e) {
     e.preventDefault();
+    // Check the format before asking the server.
     if (!/^\d{6}$/.test(code)) {
       setError('Enter the 6-digit code from your email.');
       return;
@@ -25,6 +29,7 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
     setError('');
     setBusy(true);
     try {
+      // The page passes onSubmit. It calls the API and moves on if the code is right.
       await onSubmit(code);
     } catch (err) {
       setError(err.message);
@@ -34,6 +39,7 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
 
   async function resend() {
     setError('');
+    // Ask for a new code and restart the countdown.
     try {
       await onResend();
       setStatus('A new code is on its way.');
@@ -50,6 +56,7 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
       </p>
       <div className="field">
         <label htmlFor="otp-code" className="field-label">Code</label>
+        {/* The code box: only digits are kept, at most 6. */}
         <input
           id="otp-code"
           className="code-input"
@@ -63,6 +70,7 @@ export default function CodeForm({ email, onSubmit, onResend, submitLabel, child
         />
         {error && <p id="otp-error" className="field-error" role="alert">{error}</p>}
       </div>
+      {/* Extra fields from the page, e.g. "Keep me signed in". */}
       {children}
       <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
         {busy ? 'Checking…' : submitLabel}

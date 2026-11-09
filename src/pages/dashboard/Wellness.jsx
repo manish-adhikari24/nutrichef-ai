@@ -1,3 +1,4 @@
+// Wellness page: shows today's wellness tip from the dashboard API (FR-16).
 import { Link, useOutletContext } from 'react-router-dom';
 import WellnessCard from '../../components/WellnessCard.jsx';
 import LoadStatus from '../../components/LoadStatus.jsx';
@@ -5,13 +6,16 @@ import { getDashboard } from '../../lib/api.js';
 import { useLoad } from '../../lib/useLoad.js';
 
 export default function Wellness() {
+  // The profile comes from DashboardLayout through the router outlet.
   const { profile } = useOutletContext();
+  // The dashboard endpoint already includes the wellness tip.
   const { data, error, loading, reload } = useLoad(getDashboard);
   const suggestion = data?.wellness;
 
   return (
     <>
       <h1 className="dash-title">Wellness</h1>
+      {/* Loading or error, then the tip, then a message explaining why there's no tip. */}
       {!data ? (
         <LoadStatus loading={loading} error={error} onRetry={reload} />
       ) : suggestion ? (

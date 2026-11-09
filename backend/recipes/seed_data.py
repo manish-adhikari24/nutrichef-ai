@@ -20,6 +20,7 @@ NUTRITION = {
     'oregano': (265, 9, 69, 4.3), 'mint': (70, 3.8, 15, 0.9),
 }
 
+# Other names people type, mapped to the dataset name (FR-04).
 INGREDIENT_ALIASES = {
     'chicken fillet': 'chicken breast', 'chicken fillets': 'chicken breast', 'chicken breasts': 'chicken breast',
     'egg': 'eggs', 'tomatoes': 'tomato', 'carrot': 'carrots', 'onions': 'onion', 'mushroom': 'mushrooms',
@@ -28,6 +29,7 @@ INGREDIENT_ALIASES = {
     'yoghurt': 'greek yogurt', 'yogurt': 'greek yogurt', 'scallion': 'spring onion', 'scallions': 'spring onion',
 }
 
+# Words that count as each allergen, used by the allergy check (FR-06).
 ALLERGEN_WORDS = {
     'Peanuts': ['peanut', 'groundnut', 'satay'],
     'Tree nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut', 'pine nut', 'praline', 'marzipan'],
@@ -42,6 +44,7 @@ ALLERGEN_WORDS = {
     'Lupin': ['lupin', 'lupine'],
 }
 
+# Phrases that contain an allergen word but are safe, e.g. coconut milk is not dairy.
 ALLERGEN_EXCEPTIONS = {
     'Milk': ['coconut milk', 'coconut cream', 'oat milk', 'almond milk', 'soy milk', 'rice milk', 'peanut butter', 'almond butter', 'cashew butter', 'dairy-free', 'cream of tartar'],
     'Wheat': ['rice flour', 'almond flour', 'chickpea flour', 'coconut flour', 'corn flour', 'corn tortilla', 'rice noodle', 'gluten-free', 'wheat-free'],
@@ -72,6 +75,7 @@ SUBSTITUTIONS = [
 ]
 
 # trigger, title, text
+# Supplement notes: (trigger, title, text). Shown with a disclaimer and only if switched on (FR-11).
 SUPPLEMENTS = [
     ('protein_short', 'Protein', 'This meal is lower in protein than your target. Some people use a protein powder to help close a gap like this, though food sources also work well.'),
     ('training_goal', 'Recovery', 'People training regularly sometimes look at creatine or electrolyte products. Whether these suit you depends on your circumstances.'),
@@ -79,6 +83,7 @@ SUPPLEMENTS = [
 ]
 
 # goal_type, bmi_category, calories_remaining, priority, title, text
+# Wellness tips: (goal, BMI category, needs calories left, priority, title, text). Blank means "any" (FR-16).
 WELLNESS = [
     ('', 'underweight', False, 1, 'Keep energy steady', 'Regular meals and gentle movement you enjoy, such as walking or stretching, can be a good fit. A health professional can give you advice for your situation.'),
     ('weight_loss', '', True, 5, 'A walk after dinner', 'A relaxed 20 to 30 minute walk is an easy way to add some movement to your day.'),
@@ -89,6 +94,7 @@ WELLNESS = [
 ]
 
 # Fallback recipes for demos when the AI isn't available (risk R01). Always labelled as samples.
+# Labelled example recipes, used when the AI isn't available. They are allergy-checked like AI recipes.
 SAMPLE_RECIPES = [
     {
         'title': 'Lemon-herb chicken and broccoli bowl',

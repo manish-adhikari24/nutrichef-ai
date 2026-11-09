@@ -1,3 +1,4 @@
+// Generate Recipe page: add ingredients, choose filters, generate, then save or log the recipe (FR-04 to FR-10).
 import { useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { BookmarkSimple, Check, ForkKnife, Plus, Sparkle, Warning, X } from '@phosphor-icons/react';
@@ -7,6 +8,7 @@ import { findAllergens } from '../../lib/allergens.js';
 import { CATEGORIES, normalizeList } from '../../lib/ingredients.js';
 import { dailyTargets } from '../../lib/nutrition.js';
 
+// The filter drop-downs (FR-09).
 const FILTERS = [
   { key: 'meal', label: 'Meal type', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'] },
   { key: 'cuisine', label: 'Cuisine style', options: ['Any', 'Asian', 'Mediterranean', 'Mexican', 'Western'] },
@@ -14,51 +16,67 @@ const FILTERS = [
   { key: 'difficulty', label: 'Difficulty', options: ['Any', 'Easy', 'Medium', 'Hard'] },
   { key: 'budget', label: 'Budget', options: ['Any', 'Low', 'Medium', 'High'] },
 ];
+// Turns the prep time choice into minutes for the API.
 const MINUTES = { 'Under 15 min': 15, 'Under 30 min': 30, 'Under 1 hour': 60 };
+// Category tabs for the ingredient suggestions.
 const CATEGORY_NAMES = ['All', ...Object.keys(CATEGORIES)];
 const allChips = Object.values(CATEGORIES).flat();
+// Errors where a sample recipe should be offered instead.
 const OFFER_SAMPLE = ['not_configured', 'ai_unavailable'];
 
 export default function GenerateRecipe() {
+  // currentRecipe lives in DashboardLayout, so it's kept when moving between pages.
   const { profile, currentRecipe, setCurrentRecipe } = useOutletContext();
+  // Ingredient input and the list typed or picked so far.
   const [typed, setTyped] = useState('');
   const [rawIngredients, setRawIngredients] = useState([]);
   const [category, setCategory] = useState('All');
   const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: 'Under 30 min', difficulty: 'Any', budget: 'Any' });
+  // Optional calorie target per serving.
   const [useCalories, setUseCalories] = useState(false);
   const [calories, setCalories] = useState(500);
   const [servings, setServings] = useState(2);
   const [notes, setNotes] = useState('');
+  // Generation state and messages.
   const [inputError, setInputError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
+  // Save options for the finished recipe.
   const [note, setNote] = useState('');
   const [rating, setRating] = useState(0);
+  // Swaps the user accepted, the save state and the log state.
   const [accepted, setAccepted] = useState({});
   const [saved, setSaved] = useState(false);
   const [logged, setLogged] = useState(false);
+  // The ingredient box, so focus can return to it after adding.
   const inputRef = useRef(null);
 
+  // Allergies, consent and cleaned-up ingredient names, worked out from the profile and the list.
   const allergies = allAllergies(profile);
   const consent = profile.healthConsent;
   const ingredients = normalizeList(rawIngredients);
   const names = ingredients.map((i) => i.name);
   // An instant warning while typing. The server's check decides what's blocked.
   const conflicts = findAllergens(names, allergies);
+  // Suggestion chips for the selected category.
   const chips = category === 'All' ? allChips : CATEGORIES[category];
+  // Filters that aren't "Any", shown as badges.
   const activeBadges = Object.entries(filters).filter(([, value]) => value !== 'Any').map(([, value]) => value);
   if (useCalories) activeBadges.push(`About ${calories} kcal`);
 
+  // Add one ingredient from a suggestion chip.
   function addIngredient(name) {
     setRawIngredients((list) => [...list, name]);
     setInputError('');
   }
 
+  // Remove an ingredient from the list.
   function removeIngredient(name) {
     setRawIngredients(ingredients.filter((i) => i.name !== name).map((i) => i.name));
   }
 
+  // Add whatever is typed. Commas add several at once.
   function onAdd(e) {
     e.preventDefault();
     const parts = typed.split(',').map((p) => p.trim()).filter(Boolean);
@@ -72,6 +90,7 @@ export default function GenerateRecipe() {
     inputRef.current?.focus();
   }
 
+  // The request body sent to the API.
   function buildRequest() {
     return {
       ingredients: names,
@@ -86,6 +105,7 @@ export default function GenerateRecipe() {
     };
   }
 
+  // Generate a recipe with the given API call (real or sample). Stops early if there are no ingredients or there's an allergy conflict.
   async function requestRecipe(call) {
     setMessage('');
     if (names.length === 0) {
@@ -99,6 +119,7 @@ export default function GenerateRecipe() {
     setBusy(true);
     setError(null);
     try {
+      // Show the new recipe, reset the save options, and scroll to it.
       const recipe = await call(buildRequest());
       setCurrentRecipe(recipe);
       setAccepted({});
@@ -108,6 +129,7 @@ export default function GenerateRecipe() {
       setLogged(false);
       requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     } catch (err) {
+      // A blocked recipe clears the old one, so an unsafe recipe is never left on screen.
       if (err.code === 'blocked') setCurrentRecipe(null);
       setError({ message: err.message, code: err.code });
     } finally {
@@ -115,6 +137,7 @@ export default function GenerateRecipe() {
     }
   }
 
+  // Save the recipe. The note includes any swaps the user accepted.
   async function onSave() {
     const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
     try {
@@ -122,11 +145,13 @@ export default function GenerateRecipe() {
       setSaved(true);
       setMessage('Recipe saved.');
     } catch (err) {
+      // 409 means it was already saved.
       if (err.status === 409) setSaved(true);
       setMessage(err.message);
     }
   }
 
+  // Log the recipe as eaten today.
   async function onLog() {
     try {
       await logMeal(currentRecipe.id);
@@ -144,6 +169,7 @@ export default function GenerateRecipe() {
         Add your ingredients and we&apos;ll write a recipe that&apos;s allergen-checked and fits your goals.
       </p>
 
+      {/* What's personalised (with consent), or a note explaining what isn't sent. */}
       {consent ? (
         <p className="generate-context">
           Personalised for you:{' '}
@@ -164,6 +190,7 @@ export default function GenerateRecipe() {
         </div>
       )}
 
+      {/* Left panel: add ingredients, suggestion chips and the added list with allergy warnings. */}
       <div className="generate-grid">
         <section aria-labelledby="add-title" className="generate-panel">
           <h2 id="add-title" className="dash-h2">Add ingredients</h2>
@@ -232,6 +259,7 @@ export default function GenerateRecipe() {
           )}
         </section>
 
+        {/* Right panel: filters, servings, calorie target and notes. */}
         <section aria-labelledby="filter-title" className="generate-panel">
           <h2 id="filter-title" className="dash-h2">Recipe filters</h2>
           <div className="filter-grid">
@@ -276,6 +304,7 @@ export default function GenerateRecipe() {
         </section>
       </div>
 
+      {/* The Generate button and a waiting message. */}
       <div className="generate-action">
         <button type="button" className="btn btn-primary btn-lg" onClick={() => requestRecipe(generateRecipe)} disabled={busy}>
           <Sparkle size={18} weight="fill" aria-hidden />
@@ -284,6 +313,7 @@ export default function GenerateRecipe() {
         {busy && <p className="generate-wait" role="status">Checking allergies and writing your recipe.</p>}
       </div>
 
+      {/* Error message, with a sample recipe option or a Try again button. */}
       {error && (
         <div className={error.code === 'blocked' ? 'allergy-alert' : 'generate-error'} role="alert">
           {error.code === 'blocked' && <Warning size={22} weight="fill" aria-hidden />}
@@ -297,12 +327,14 @@ export default function GenerateRecipe() {
         </div>
       )}
 
+      {/* The generated recipe, with save, log and regenerate buttons. */}
       {currentRecipe && (
         <RecipeCard
           recipe={currentRecipe}
           accepted={accepted}
           onAccept={(ingredient, value) => setAccepted((a) => ({ ...a, [ingredient]: value }))}
         >
+          {/* Note and rating, shown until it's saved. */}
           {!saved && (
             <div className="save-fields">
               <div className="field">

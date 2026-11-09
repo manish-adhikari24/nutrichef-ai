@@ -1,3 +1,4 @@
+// Site footer on the public pages: logo, tagline, links and the small print.
 import { Link } from 'react-router-dom';
 import Logo from './Logo.jsx';
 

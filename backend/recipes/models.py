@@ -1,8 +1,10 @@
+# Database tables for recipes, saved recipes, meal and water logs, and the reference data.
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
+# Reference data (seeded by a migration): nutrition per 100 g of each ingredient.
 class NutritionItem(models.Model):
     """Values per 100 g."""
 
@@ -16,6 +18,7 @@ class NutritionItem(models.Model):
         db_table = 'nutrition_dataset'
 
 
+# Other names for the same ingredient, e.g. "spring onion" -> "green onion".
 class IngredientAlias(models.Model):
     alias = models.CharField(max_length=80, unique=True)
     name = models.CharField(max_length=80)
@@ -24,6 +27,7 @@ class IngredientAlias(models.Model):
         db_table = 'ingredient_aliases'
 
 
+# Words that mean an allergen, e.g. Milk -> cheese, butter, whey.
 class AllergenAlias(models.Model):
     allergen = models.CharField(max_length=40)
     word = models.CharField(max_length=60)
@@ -44,6 +48,7 @@ class AllergenException(models.Model):
         constraints = [models.UniqueConstraint(fields=['allergen', 'phrase'], name='unique_allergen_phrase')]
 
 
+# A swap for a missing ingredient. Lower rank shows first.
 class SubstitutionRule(models.Model):
     match = models.CharField(max_length=60)
     substitute = models.CharField(max_length=80)
@@ -55,6 +60,7 @@ class SubstitutionRule(models.Model):
         ordering = ['id']
 
 
+# Supplement notes and the situation that triggers each one (FR-11).
 class SupplementRule(models.Model):
     trigger = models.CharField(max_length=30)  # protein_short, training_goal or vegan_diet
     title = models.CharField(max_length=60)
@@ -65,6 +71,7 @@ class SupplementRule(models.Model):
         ordering = ['id']
 
 
+# Wellness tips and when to show each one (FR-16).
 class ActivityGuidanceRule(models.Model):
     goal_type = models.CharField(max_length=24, blank=True)  # blank matches every goal
     bmi_category = models.CharField(max_length=16, blank=True)  # blank matches every category
@@ -79,6 +86,7 @@ class ActivityGuidanceRule(models.Model):
         ordering = ['priority', 'id']
 
 
+# Every recipe the AI (or the sample) produced for a user, with its nutrition and allergy check.
 class GeneratedRecipe(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='generated_recipes')
     title = models.CharField(max_length=200)
@@ -106,6 +114,7 @@ class GeneratedRecipe(models.Model):
         ordering = ['-generated_at']
 
 
+# A recipe the user chose to keep, with an optional note and star rating.
 class SavedRecipe(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_recipes')
     generated_recipe = models.ForeignKey(GeneratedRecipe, on_delete=models.CASCADE, related_name='saves')
@@ -116,11 +125,14 @@ class SavedRecipe(models.Model):
     class Meta:
         db_table = 'saved_recipes'
         ordering = ['-saved_at', '-id']
+        # The same recipe can only be saved once per user.
         constraints = [models.UniqueConstraint(fields=['user', 'generated_recipe'], name='unique_saved_recipe')]
 
 
+# A meal the user logged as eaten. The nutrition is copied, so it stays even if the recipe is deleted.
 class ConsumedMeal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='consumed_meals')
+    # SET_NULL keeps the logged meal if the recipe is removed.
     recipe = models.ForeignKey(GeneratedRecipe, null=True, on_delete=models.SET_NULL)
     title = models.CharField(max_length=200)
     meal_type = models.CharField(max_length=16)
@@ -135,6 +147,7 @@ class ConsumedMeal(models.Model):
         ordering = ['id']
 
 
+# Glasses of water per user per day.
 class WaterLog(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='water_logs')
     date = models.DateField(default=timezone.localdate)

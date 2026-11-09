@@ -1,5 +1,6 @@
 // Hand-drawn style line doodles used inline in editorial text and as margin notes.
 // They are decorative, so they are hidden from assistive tech.
+// Shared SVG settings: outline only, in the current text colour, with rounded line ends.
 const base = {
   fill: 'none',
   stroke: 'currentColor',
@@ -10,6 +11,7 @@ const base = {
   focusable: 'false',
 };
 
+// Fried egg.
 export function Egg(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -20,6 +22,7 @@ export function Egg(props) {
   );
 }
 
+// Lemon slice with a leaf.
 export function Lemon(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -31,6 +34,7 @@ export function Lemon(props) {
   );
 }
 
+// Leaf.
 export function Leaf(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -40,6 +44,7 @@ export function Leaf(props) {
   );
 }
 
+// Whisk.
 export function Whisk(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -51,6 +56,7 @@ export function Whisk(props) {
   );
 }
 
+// Carrot.
 export function Carrot(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -61,6 +67,7 @@ export function Carrot(props) {
   );
 }
 
+// Frying pan with steam.
 export function Pan(props) {
   return (
     <svg viewBox="0 0 48 48" className="doodle" {...base} {...props}>
@@ -74,6 +81,7 @@ export function Pan(props) {
 
 // Curved hand-drawn arrows for margin notes. `dir` flips them horizontally.
 export function NoteArrow({ variant = 1, flip = false, ...props }) {
+  // Three arrow shapes: the curve and the arrowhead for each.
   const paths = {
     1: ['M4 6C14 4 30 10 36 30', 'M29 26l7 4 2-8'],
     2: ['M4 30C10 16 24 8 40 10', 'M33 6l7 4-6 6'],

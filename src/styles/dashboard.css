@@ -1,3 +1,4 @@
+/* Styles for the signed-in dashboard pages. */
 /* App shell: sidebar on large screens, top bar plus bottom tabs on phones. */
 .dash {
   display: grid;
@@ -5,6 +6,7 @@
   min-height: 100dvh;
 }
 
+/* Sidebar: sticky down the left side on large screens. */
 .dash-side {
   position: sticky;
   top: 0;
@@ -16,6 +18,7 @@
   border-right: 1px solid var(--line);
 }
 
+/* Menu links, with the current page highlighted. */
 .dash-nav {
   display: grid;
   gap: 4px;
@@ -49,6 +52,7 @@
   color: var(--beet);
 }
 
+/* Log out button and profile icon at the bottom of the sidebar. */
 .dash-tools {
   display: flex;
   align-items: center;
@@ -73,12 +77,14 @@
   text-underline-offset: 4px;
 }
 
+/* The page content area beside the sidebar. */
 .dash-main {
   width: 100%;
   max-width: 1160px;
   padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px) 64px;
 }
 
+/* Page titles and section headings. */
 .dash-title {
   margin-bottom: var(--space-5);
   font-family: var(--font-display);
@@ -144,6 +150,7 @@
   margin-top: var(--space-3);
 }
 
+/* Two columns on the dashboard home. */
 .dash-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -199,6 +206,7 @@
   border-bottom: 1px solid var(--line-strong);
 }
 
+/* Dashed goal line across the chart. */
 .bars-goal {
   position: absolute;
   inset-inline: 0;
@@ -217,6 +225,7 @@
   color: var(--ink-2);
 }
 
+/* One column per day. The bar grows from the bottom. */
 .bar-col {
   position: relative;
   display: flex;
@@ -246,6 +255,7 @@
   opacity: 0.45;
 }
 
+/* Tooltip showing the day's calories on hover or keyboard focus. */
 .bar-tip {
   position: absolute;
   top: 0;
@@ -264,6 +274,7 @@
   transition: opacity var(--dur-fast) ease;
 }
 
+/* Keep the first and last tooltips inside the chart. */
 .bar-col:nth-child(2) .bar-tip {
   left: 0;
   translate: 0 0;
@@ -280,6 +291,7 @@
   opacity: 1;
 }
 
+/* Day names under the chart. */
 .bars-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -298,6 +310,7 @@
   margin: 0;
 }
 
+/* Optional table version of the chart data. */
 .bars-table {
   margin-top: var(--space-3);
   font-size: var(--step--1);
@@ -379,6 +392,7 @@
   font-size: 0.95rem;
 }
 
+/* Message shown when a list is empty. */
 .dash-empty {
   padding-block: var(--space-4);
   color: var(--ink-2);
@@ -387,6 +401,7 @@
 /* Pantry */
 /* Meal plan */
 /* Phones and small tablets: top bar and bottom tabs */
+/* Phones and small tablets: the sidebar becomes a bottom tab bar. */
 @media (max-width: 860px) {
   .dash {
     grid-template-columns: minmax(0, 1fr);
@@ -432,6 +447,7 @@
   }
 }
 
+/* Very small phones: add-form controls take the full width. */
 @media (max-width: 480px) {
   .dash-add-btn,
   .dash-add select,

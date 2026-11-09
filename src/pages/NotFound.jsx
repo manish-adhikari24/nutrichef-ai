@@ -1,3 +1,4 @@
+// The page shown for any address that doesn't exist (404).
 import { Link } from 'react-router-dom';
 import { Pan } from '../components/Doodles.jsx';
 

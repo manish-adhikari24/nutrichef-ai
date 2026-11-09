@@ -3,6 +3,7 @@
 // products, so the app must still tell people to check labels themselves.
 export const ALLERGENS = ['Peanuts', 'Tree nuts', 'Milk', 'Eggs', 'Wheat', 'Gluten', 'Soy', 'Fish', 'Shellfish', 'Sesame', 'Lupin'];
 
+// Other words for each allergen (the server uses the same list).
 const ALIASES = {
   Peanuts: ['peanut', 'groundnut', 'satay'],
   'Tree nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut', 'pine nut', 'praline', 'marzipan'],
@@ -24,10 +25,13 @@ const NOT_THE_ALLERGEN = {
   Gluten: ['rice flour', 'almond flour', 'chickpea flour', 'coconut flour', 'corn flour', 'corn tortilla', 'rice noodle', 'gluten-free'],
 };
 
+// Escapes regex special characters so ingredient words are matched literally.
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// True if the allergen (or one of its aliases) appears in the name as a whole word.
 function matches(name, allergen) {
   let text = name.toLowerCase();
+  // First blank out the safe phrases.
   for (const phrase of NOT_THE_ALLERGEN[allergen] ?? []) text = text.replaceAll(phrase, ' ');
   const words = ALIASES[allergen] ?? [allergen.toLowerCase()];
   return words.some((word) => new RegExp(`\\b${escape(word)}(s|es)?\\b`).test(text));

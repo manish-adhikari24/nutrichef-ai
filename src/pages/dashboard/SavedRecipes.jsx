@@ -1,3 +1,4 @@
+// Saved Recipes page: filter, search, page through, view, log, or delete saved recipes (FR-12, FR-13).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretDown, CaretUp, ForkKnife, ShieldCheck, Sparkle, Star, Trash } from '@phosphor-icons/react';
@@ -6,24 +7,30 @@ import RecipeCard from '../../components/RecipeCard.jsx';
 import { deleteSaved, listSaved, logMeal } from '../../lib/api.js';
 import { useLoad } from '../../lib/useLoad.js';
 
+// Filter chips (they match the server's tags), and how long to wait after typing before searching.
 const FILTERS = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Vegan', 'High protein', 'Under 30 min'];
 const SEARCH_DELAY_MS = 300;
 
 export default function SavedRecipes() {
   const [filter, setFilter] = useState('All');
+  // What's typed in the search box, and the search actually sent once typing pauses.
   const [typed, setTyped] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  // Which recipe's details are open.
   const [openId, setOpenId] = useState(null);
+  // The recipe waiting for delete confirmation.
   const [pendingDelete, setPendingDelete] = useState(null);
   const [message, setMessage] = useState('');
   const dialogRef = useRef(null);
 
+  // Reload the list whenever the page, filter or search changes.
   const { data, error, loading, reload } = useLoad(
     () => listSaved({ page, tag: filter === 'All' ? '' : filter, q: search }),
     [page, filter, search]
   );
 
+  // Wait 300 ms after the last keystroke before searching, and go back to page 1.
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(typed.trim());
@@ -32,12 +39,14 @@ export default function SavedRecipes() {
     return () => clearTimeout(timer);
   }, [typed]);
 
+  // Open or close the delete dialog to match pendingDelete.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (pendingDelete && !dialog.open) dialog.showModal();
     if (!pendingDelete && dialog.open) dialog.close();
   }, [pendingDelete]);
 
+  // Delete the saved recipe after confirmation, then reload the list.
   async function confirmDelete() {
     const { id, recipe } = pendingDelete;
     setPendingDelete(null);
@@ -50,6 +59,7 @@ export default function SavedRecipes() {
     }
   }
 
+  // Log this recipe as eaten today.
   async function log(recipe) {
     try {
       await logMeal(recipe.id);
@@ -59,10 +69,12 @@ export default function SavedRecipes() {
     }
   }
 
+  // Has the user saved anything at all, ignoring filters?
   const hasAny = data && data.totalSaved > 0;
 
   return (
     <>
+      {/* Title, count and a Generate button. */}
       <div className="dash-top">
         <div>
           <h1 className="dash-title">Saved recipes</h1>
@@ -71,9 +83,11 @@ export default function SavedRecipes() {
         <Link to="/dashboard/generate" className="btn btn-primary"><Sparkle size={18} weight="fill" aria-hidden /> Generate new</Link>
       </div>
 
+      {/* Loading and error states. */}
       {!data && <LoadStatus loading={loading} error={error} onRetry={reload} />}
       {data && error && <LoadStatus error={error} onRetry={reload} />}
 
+      {/* No saved recipes yet. */}
       {data && !hasAny && (
         <p className="dash-empty">
           You haven&apos;t saved any recipes yet. <Link to="/dashboard/generate" className="inline-link">Generate your first recipe</Link>.
@@ -104,6 +118,7 @@ export default function SavedRecipes() {
 
           <p role="status" className="profile-status saved-status">{message}</p>
 
+          {/* No matches, or one card per saved recipe. */}
           {data.results.length === 0 ? (
             <p className="dash-empty">No saved recipes match. Try another filter or search.</p>
           ) : (
@@ -149,6 +164,7 @@ export default function SavedRecipes() {
             </ul>
           )}
 
+          {/* Previous / Next page buttons. */}
           {data.pages > 1 && (
             <nav className="pagination" aria-label="Saved recipe pages">
               <button type="button" className="btn btn-ghost btn-sm" disabled={data.page === 1} onClick={() => setPage(data.page - 1)}>Previous</button>
@@ -159,6 +175,7 @@ export default function SavedRecipes() {
         </>
       )}
 
+      {/* Delete confirmation dialog. */}
       <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="delete-title" onClose={() => setPendingDelete(null)}>
         <h2 id="delete-title" className="dash-h2">Delete this recipe?</h2>
         <p>{pendingDelete?.recipe.title} will be removed from your saved recipes.</p>

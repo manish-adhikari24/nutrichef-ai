@@ -1,4 +1,5 @@
 // Ingredient categories and name clean-up for FR-04.
+// Ingredient chips grouped by category on the Generate Recipe page.
 export const CATEGORIES = {
   Proteins: ['Chicken breast', 'Eggs', 'Salmon', 'Tofu', 'Beef mince', 'Chickpeas', 'Lentils'],
   Vegetables: ['Broccoli', 'Spinach', 'Tomato', 'Bell pepper', 'Carrots', 'Onion', 'Mushrooms', 'Garlic', 'Corn'],
@@ -9,6 +10,7 @@ export const CATEGORIES = {
   Herbs: ['Parsley', 'Basil', 'Coriander', 'Oregano', 'Mint'],
 };
 
+// Other names people type, mapped to one standard name.
 const ALIASES = {
   'chicken fillet': 'chicken breast',
   'chicken fillets': 'chicken breast',
@@ -31,8 +33,10 @@ const ALIASES = {
   scallions: 'spring onion',
 };
 
+// Every ingredient name from the categories, in lowercase, for quick lookup.
 const KNOWN = new Set(Object.values(CATEGORIES).flat().map((name) => name.toLowerCase()));
 
+// Cleans one name: trim, collapse spaces, lowercase, then apply the alias table.
 export function normalizeIngredient(raw) {
   const clean = raw.trim().replace(/\s+/g, ' ').toLowerCase();
   return ALIASES[clean] ?? clean;

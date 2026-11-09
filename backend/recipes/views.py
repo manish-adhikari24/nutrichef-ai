@@ -1,3 +1,4 @@
+# API endpoints for recipe generation, the recipe assistant, saved recipes, meal and water logs and the dashboard.
 import itertools
 import logging
 from datetime import timedelta
@@ -27,10 +28,13 @@ from .services.suggestions import suggest_substitutions, suggest_supplements, su
 
 logger = logging.getLogger(__name__)
 
+# Saved recipes per page.
 PAGE_SIZE = 6
+# Rotates through the sample recipes.
 SAMPLE_CYCLE = itertools.count()
 
 
+# Checks the Generate Recipe form (FR-09). Every filter must be one of the allowed values.
 class GenerateRequest(serializers.Serializer):
     ingredients = serializers.ListField(child=serializers.CharField(max_length=80), allow_empty=False, max_length=60, error_messages={'empty': 'Please enter at least one ingredient.'})
     meal = serializers.ChoiceField(choices=['Breakfast', 'Lunch', 'Dinner', 'Snack'], default='Dinner')
@@ -43,6 +47,7 @@ class GenerateRequest(serializers.Serializer):
     notes = serializers.CharField(max_length=300, allow_blank=True, default='')
 
 
+# The names of the user's allergies.
 def user_allergies(user):
     return list(user.allergies.values_list('name', flat=True))
 
@@ -53,6 +58,7 @@ def recipe_payload(recipe, user):
     allergies = user_allergies(user)
     nutrition = {'kcal': recipe.calories, 'protein': recipe.protein_g, 'carbs': recipe.carbs_g, 'fat': recipe.fat_g}
     content = recipe.content
+    # Everything the recipe card needs. Goal alignment and suggestions are worked out fresh each time.
     return {
         'id': recipe.id,
         'title': recipe.title,
@@ -68,6 +74,7 @@ def recipe_payload(recipe, user):
         'nutrition': nutrition,
         'nutritionSource': recipe.nutrition_source,
         'nutritionWarning': recipe.nutrition_warning,
+        # The browser gets ingredient names and amounts only, not the internal gram and nutrition figures.
         'ingredients': [{'name': i['name'], 'amount': i['amount'], 'missing': i['missing']} for i in content['ingredients']],
         'steps': content['steps'],
         'why_it_fits': content['why_it_fits'],
@@ -80,6 +87,7 @@ def recipe_payload(recipe, user):
     }
 
 
+# The error returned when the finished recipe contains an allergen.
 def blocked_response(found):
     return Response(
         {
@@ -93,6 +101,7 @@ def blocked_response(found):
 
 def store_recipe(user, data, recipe, source, allergies):
     """Runs the nutrition steps and saves a recipe that has passed the allergy check."""
+    # Recalculate nutrition from our dataset instead of trusting the AI's numbers.
     nutrition, nutrition_source = calculate_nutrition(recipe)
     profile = user.profile
     return GeneratedRecipe.objects.create(
@@ -104,7 +113,9 @@ def store_recipe(user, data, recipe, source, allergies):
         estimated_cost=data['budget'],
         cooking_time=recipe['minutes'],
         servings=recipe['servings'],
+        # Stored as '' when the user has no specific diet.
         diet='' if profile.diet == 'No specific diet' else profile.diet,
+        # Negative values are never stored.
         calories=max(nutrition['kcal'], 0),
         protein_g=max(nutrition['protein'], 0),
         carbs_g=max(nutrition['carbs'], 0),
@@ -118,24 +129,29 @@ def store_recipe(user, data, recipe, source, allergies):
     )
 
 
+# Shared steps for real and sample recipes: check the request first, then check the result.
 class BaseGenerateView(APIView):
     def prepare(self, request):
         """Validates the request and checks the ingredients. Returns (data, allergies, error response)."""
         serializer = GenerateRequest(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Clean the ingredient names (trim, lowercase, aliases, duplicates).
         data = dict(serializer.validated_data)
         data['ingredients'] = normalize_ingredients(data['ingredients'])
         if not data['ingredients']:
             raise serializers.ValidationError({'ingredients': 'Please enter at least one ingredient.'})
+        # Check the typed ingredients against the user's allergies before calling the AI (FR-06).
         try:
             allergies = user_allergies(request.user)
             conflicts = find_allergens(data['ingredients'], allergies)
+        # If the check itself fails, block rather than risk an unsafe recipe.
         except DatabaseError:
             logger.exception('Allergy check failed')
             return None, None, Response(
                 {'code': 'blocked', 'error': 'We could not check your allergies, so no recipe was generated. Try again.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+        # A listed allergen in the ingredients: stop here.
         if conflicts:
             return None, None, Response(
                 {
@@ -149,6 +165,7 @@ class BaseGenerateView(APIView):
 
     def finish(self, request, data, recipe, source, allergies):
         """The allergy check on the finished recipe. Unsafe recipes are never stored."""
+        # Check the AI's ingredients too, since it could add something unsafe.
         try:
             found = find_allergens([i['name'] for i in recipe['ingredients']], allergies)
         except DatabaseError:
@@ -159,10 +176,12 @@ class BaseGenerateView(APIView):
             )
         if found:
             return blocked_response(found)
+        # Safe: save it and return it.
         stored = store_recipe(request.user, data, recipe, source, allergies)
         return Response(recipe_payload(stored, request.user), status=status.HTTP_201_CREATED)
 
 
+# POST /api/recipes/generate: write a recipe with Claude, limited to 10 an hour per user.
 class GenerateRecipeView(BaseGenerateView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'generate'
@@ -172,6 +191,7 @@ class GenerateRecipeView(BaseGenerateView):
         if error:
             return error
 
+        # What gets sent to the AI. With no consent, only the form's cooking choices go.
         ai_request = dict(data)
         profile = request.user.profile
         # Allergies are always checked here. They only go to the AI with the person's consent.
@@ -182,6 +202,7 @@ class GenerateRecipeView(BaseGenerateView):
                 dislikes=profile.dislikes,
                 targets=meal_targets(profile, data['meal']),
             )
+        # Turn each AI error into a clear message for the user.
         try:
             recipe = ai.write_recipe(ai_request)
         except ai.NotConfigured:
@@ -201,6 +222,7 @@ class GenerateRecipeView(BaseGenerateView):
         return self.finish(request, data, recipe, 'ai', allergies)
 
 
+# POST /api/recipes/sample
 class SampleRecipeView(BaseGenerateView):
     """A labelled fallback for demos when the AI isn't available (risk R01)."""
 
@@ -208,36 +230,44 @@ class SampleRecipeView(BaseGenerateView):
         data, allergies, error = self.prepare(request)
         if error:
             return error
+        # Pick the next sample recipe in turn.
         recipe = SAMPLE_RECIPES[next(SAMPLE_CYCLE) % len(SAMPLE_RECIPES)]
         return self.finish(request, data, recipe, 'sample', allergies)
 
 
+# Checks the assistant chat history sent by the browser.
 class AskRequest(serializers.Serializer):
     class Turn(serializers.Serializer):
         role = serializers.ChoiceField(choices=['user', 'assistant'])
         content = serializers.CharField(max_length=2000)
 
+    # At most 12 messages, so requests stay small.
     messages = serializers.ListField(child=Turn(), allow_empty=False, max_length=12)
 
     def validate_messages(self, messages):
+        # The last message must be the user's question, under 500 characters.
         if messages[-1]['role'] != 'user':
             raise serializers.ValidationError('End with your question.')
         if len(messages[-1]['content']) > 500:
             raise serializers.ValidationError('Keep your question under 500 characters.')
+        # Messages must alternate: user, assistant, user...
         if any(m['role'] == ('assistant' if i % 2 == 0 else 'user') for i, m in enumerate(messages)):
             raise serializers.ValidationError('Questions and answers must take turns.')
         return messages
 
 
+# POST /api/recipes/<id>/ask
 class RecipeAssistantView(APIView):
     """Answers cooking questions about one of the person's own recipes."""
 
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'assistant'
 
+    # Pretend it doesn't exist while the feature is switched off.
     def post(self, request, pk):
         if not assistant.enabled():
             return Response({'error': 'We could not find that.'}, status=status.HTTP_404_NOT_FOUND)
+        # Users can only ask about their own recipes.
         recipe = get_object_or_404(GeneratedRecipe, pk=pk)
         if recipe.user_id != request.user.id:
             raise PermissionDenied
@@ -260,6 +290,7 @@ class RecipeAssistantView(APIView):
         return Response({'answer': answer})
 
 
+# A saved recipe with its note, rating and the full recipe.
 def saved_payload(item, user):
     return {
         'id': item.id,
@@ -270,7 +301,9 @@ def saved_payload(item, user):
     }
 
 
+# GET and POST /api/saved: list saved recipes (FR-13) or save one (FR-12).
 class SavedListView(APIView):
+    # Filter chips on the Saved Recipes page and the query for each.
     TAGS = {
         'Breakfast': Q(generated_recipe__meal_type='Breakfast'),
         'Lunch': Q(generated_recipe__meal_type='Lunch'),
@@ -281,16 +314,19 @@ class SavedListView(APIView):
     }
 
     def get(self, request):
+        # Only this user's saved recipes.
         items = SavedRecipe.objects.filter(user=request.user).select_related('generated_recipe')
         total_saved = items.count()
         tag = request.query_params.get('tag', '')
         if tag in self.TAGS:
             items = items.filter(self.TAGS[tag])
+        # Search titles and ingredients.
         search = request.query_params.get('q', '').strip()
         if search:
             items = items.filter(
                 Q(generated_recipe__title__icontains=search) | Q(generated_recipe__content__ingredients__icontains=search)
             )
+        # Work out the number of pages (rounding up) and keep the page number in range.
         count = items.count()
         pages = max(1, -(-count // PAGE_SIZE))
         try:
@@ -307,6 +343,7 @@ class SavedListView(APIView):
         })
 
     def post(self, request):
+        # Checks the save request.
         class Body(serializers.Serializer):
             recipeId = serializers.IntegerField()
             note = serializers.CharField(max_length=500, allow_blank=True, default='')
@@ -314,10 +351,12 @@ class SavedListView(APIView):
 
         body = Body(data=request.data)
         body.is_valid(raise_exception=True)
+        # Users can only save their own recipes.
         recipe = get_object_or_404(GeneratedRecipe, pk=body.validated_data['recipeId'])
         if recipe.user_id != request.user.id:
             raise PermissionDenied
         try:
+            # The database blocks saving the same recipe twice. Report that as a 409 conflict.
             with transaction.atomic():
                 item = SavedRecipe.objects.create(
                     user=request.user,
@@ -330,6 +369,7 @@ class SavedListView(APIView):
         return Response(saved_payload(item, request.user), status=status.HTTP_201_CREATED)
 
 
+# DELETE /api/saved/<id>: remove a saved recipe, if it belongs to the user.
 class SavedDetailView(APIView):
     def delete(self, request, pk):
         item = get_object_or_404(SavedRecipe, pk=pk)
@@ -339,6 +379,7 @@ class SavedDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# A logged meal as the front end shows it.
 def meal_payload(meal):
     return {
         'id': meal.id,
@@ -352,6 +393,7 @@ def meal_payload(meal):
     }
 
 
+# Adds up calories and macros for a list of meals.
 def totals_of(meals):
     return {
         'kcal': sum(m.calories for m in meals),
@@ -361,8 +403,10 @@ def totals_of(meals):
     }
 
 
+# GET and POST /api/log: the nutrition tracker (FR-14).
 class MealLogView(APIView):
     def get(self, request):
+        # Today's meals plus totals for each of the last 7 days (for the Progress chart).
         today = timezone.localdate()
         dates = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
         meals = list(ConsumedMeal.objects.filter(user=request.user, date__gte=dates[0]))
@@ -375,6 +419,7 @@ class MealLogView(APIView):
         })
 
     def post(self, request):
+        # Log a recipe as eaten. Its nutrition is copied into the log.
         class Body(serializers.Serializer):
             recipeId = serializers.IntegerField()
 
@@ -396,6 +441,7 @@ class MealLogView(APIView):
         return Response(meal_payload(meal), status=status.HTTP_201_CREATED)
 
 
+# DELETE /api/log/<id>: remove a logged meal, if it belongs to the user.
 class MealDetailView(APIView):
     def delete(self, request, pk):
         meal = get_object_or_404(ConsumedMeal, pk=pk)
@@ -405,6 +451,7 @@ class MealDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# PUT /api/water: set today's glasses of water (0 to 50).
 class WaterView(APIView):
     def put(self, request):
         class Body(serializers.Serializer):
@@ -412,6 +459,7 @@ class WaterView(APIView):
 
         body = Body(data=request.data)
         body.is_valid(raise_exception=True)
+        # One row per user per day: update it, or create it if it's missing.
         log, _created = WaterLog.objects.update_or_create(
             user=request.user,
             date=timezone.localdate(),
@@ -420,6 +468,7 @@ class WaterView(APIView):
         return Response({'glasses': log.glasses})
 
 
+# GET /api/dashboard: today's totals, water, recipes made today, recent saves and a wellness tip.
 class DashboardView(APIView):
     def get(self, request):
         user = request.user

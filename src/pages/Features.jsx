@@ -1,3 +1,4 @@
+// Public Features page: one card per main feature.
 import {
   Basket,
   BookmarkSimple,
@@ -11,6 +12,7 @@ import {
 import SignupBand from '../components/SignupBand.jsx';
 import { img } from '../img.js';
 
+// Each feature: icon, title, description and a handwritten note.
 const FEATURES = [
   {
     icon: Basket,
@@ -77,6 +79,7 @@ export default function Features() {
         </div>
       </section>
 
+      {/* Wide photo banner. */}
       <div className="wrap">
         <div className="banner-photo">
           <img
@@ -89,6 +92,7 @@ export default function Features() {
         </div>
       </div>
 
+      {/* The feature cards. */}
       <section className="section" aria-label="Features">
         <div className="wrap">
           <ul className="feature-list">

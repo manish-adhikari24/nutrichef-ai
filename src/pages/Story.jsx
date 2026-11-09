@@ -1,7 +1,9 @@
+// Public "Our story" page: why the project exists and the team's values.
 import { Leaf, Egg, Whisk } from '../components/Doodles.jsx';
 import SignupBand from '../components/SignupBand.jsx';
 import { img } from '../img.js';
 
+// The three values, each with a hand-drawn doodle.
 const VALUES = [
   {
     doodle: Leaf,
@@ -23,6 +25,7 @@ const VALUES = [
 export default function Story() {
   return (
     <>
+      {/* Page title. */}
       <section className="page-hero" aria-labelledby="story-title">
         <div className="wrap">
           <h1 id="story-title" className="display-1">
@@ -31,6 +34,7 @@ export default function Story() {
         </div>
       </section>
 
+      {/* Photo next to the story text. */}
       <section className="section story" aria-label="Our story">
         <div className="wrap story-grid">
           <div className="story-photo">
@@ -61,6 +65,7 @@ export default function Story() {
         </div>
       </section>
 
+      {/* The values list. */}
       <section className="section values" aria-labelledby="values-title">
         <div className="wrap">
           <h2 id="values-title" className="display-2">What we cook by</h2>

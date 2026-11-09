@@ -1,5 +1,6 @@
 import { Check, X } from '@phosphor-icons/react';
 
+// The same character rules the server checks (FR-01), each with a test and a label.
 export const PASSWORD_RULES = [
   { test: (p) => p.length >= 10, label: 'At least 10 characters' },
   { test: (p) => /[A-Z]/.test(p), label: 'An uppercase letter' },
@@ -8,6 +9,7 @@ export const PASSWORD_RULES = [
   { test: (p) => /[^A-Za-z0-9]/.test(p), label: 'A symbol, such as ! or #' },
 ];
 
+// True when the password passes every rule above.
 export const meetsPasswordRules = (password) => PASSWORD_RULES.every((rule) => rule.test(password));
 
 // Live feedback while typing. The server also rejects common, breached and
@@ -17,6 +19,7 @@ export default function PasswordChecklist({ password, id }) {
     <div className="password-rules" id={id}>
       <ul aria-label="Password requirements">
         {PASSWORD_RULES.map(({ test, label }) => {
+          // Ticks or crosses each rule as the user types. Screen readers also hear "done" or "not yet".
           const met = test(password);
           return (
             <li key={label} className={met ? 'is-met' : undefined}>

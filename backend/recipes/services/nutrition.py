@@ -3,19 +3,25 @@ import re
 
 from recipes.models import IngredientAlias, NutritionItem
 
+# Share of the daily calories for each meal type.
 MEAL_SHARE = {'Breakfast': 0.25, 'Lunch': 0.3, 'Dinner': 0.35, 'Snack': 0.1}
+# Calories within 10% count as on target. Each macro may be up to 8 percentage points off.
 CALORIE_TOLERANCE = 0.1
 MACRO_TOLERANCE_POINTS = 8
+# The four values we track everywhere.
 KEYS = ['kcal', 'protein', 'carbs', 'fat']
 
 
 def normalize_ingredients(raw_names):
     """Trims, lowercases, maps aliases and merges duplicates."""
+    # Alias table, e.g. "capsicum" -> "bell pepper".
     aliases = dict(IngredientAlias.objects.values_list('alias', 'name'))
     seen = []
     for raw in raw_names:
+        # Collapse extra spaces and lowercase.
         clean = re.sub(r'\s+', ' ', raw).strip().lower()
         name = aliases.get(clean, clean)
+        # Skip blanks and duplicates, keeping the original order.
         if name and name not in seen:
             seen.append(name)
     return seen
@@ -24,21 +30,25 @@ def normalize_ingredients(raw_names):
 def _lookup(name, items):
     """Finds the longest dataset name contained in the ingredient name."""
     text = name.lower()
+    # Whole-word matches, plural "s"/"es" allowed. The longest match is the most specific.
     matches = [key for key in items if re.search(rf'\b{re.escape(key)}(s|es)?\b', text)]
     return items[max(matches, key=len)] if matches else None
 
 
 def calculate_nutrition(recipe):
     """Per-serving values from the dataset, using AI estimates for anything it doesn't cover."""
+    # The reference dataset (values per 100 g).
     items = {item.name: item for item in NutritionItem.objects.all()}
     servings = max(recipe.get('servings') or 1, 1)
     totals = dict.fromkeys(KEYS, 0.0)
     from_dataset = 0
     ingredients = recipe['ingredients']
 
+    # For each ingredient, use the dataset if possible, otherwise the AI's own figures.
     for ingredient in ingredients:
         item = _lookup(ingredient['name'], items)
         grams = ingredient.get('grams') or 0
+        # Dataset values are per 100 g, so scale by the grams used.
         if item and grams > 0:
             from_dataset += 1
             for key in KEYS:
@@ -50,16 +60,20 @@ def calculate_nutrition(recipe):
             # Without values for one ingredient, the only complete figure is the recipe's own estimate.
             return dict(recipe['nutrition']), 'ai_estimated'
 
+    # Record where the numbers came from, so the recipe card can say so.
     if from_dataset == 0:
         source = 'ai_estimated'
     elif from_dataset == len(ingredients):
         source = 'calculated'
     else:
         source = 'partly_estimated'
+    # Totals divided by servings, rounded.
     return {key: round(totals[key] / servings) for key in KEYS}, source
 
 
+# Flags numbers that look impossible, so the recipe card can warn the user.
 def nutrition_looks_wrong(n):
+    # Calories should roughly equal protein x 4 + carbs x 4 + fat x 9.
     energy = n['protein'] * 4 + n['carbs'] * 4 + n['fat'] * 9
     return (
         n['kcal'] < 30 or n['kcal'] > 2500 or n['protein'] > 200 or n['carbs'] > 400 or n['fat'] > 200
@@ -67,6 +81,7 @@ def nutrition_looks_wrong(n):
     )
 
 
+# Daily grams of each macro from the calorie target and percentages (4 kcal/g protein and carbs, 9 kcal/g fat).
 def daily_targets(profile):
     kcal = profile.calorie_target
     if not kcal:
@@ -79,6 +94,7 @@ def daily_targets(profile):
     }
 
 
+# The daily targets scaled to one meal (dinner if the meal type is unknown).
 def meal_targets(profile, meal):
     daily = daily_targets(profile)
     if not daily:
@@ -92,6 +108,7 @@ def assess_recipe(nutrition, meal, profile):
     target = meal_targets(profile, meal)
     if not target:
         return None
+    # How far the calories are from the meal target, in percent.
     meal_name = meal.lower()
     diff = round((nutrition['kcal'] - target['kcal']) / target['kcal'] * 100)
     within = abs(diff) <= CALORIE_TOLERANCE * 100
@@ -104,6 +121,7 @@ def assess_recipe(nutrition, meal, profile):
             else f"Calories {'exceed' if diff > 0 else 'are under'} your {meal_name} target by {abs(diff)}%."
         ),
     }]
+    # Compare each macro's share of the recipe's calories with the user's goal percentage.
     energy = nutrition['protein'] * 4 + nutrition['carbs'] * 4 + nutrition['fat'] * 9
     for key, label, per_gram, goal in [
         ('protein', 'Protein', 4, profile.protein_pct),
@@ -124,6 +142,7 @@ def assess_recipe(nutrition, meal, profile):
     return results
 
 
+# BMI = weight (kg) / height (m) squared, then the standard WHO categories.
 def bmi_category(profile):
     if not profile.height_cm or not profile.weight_kg:
         return ''

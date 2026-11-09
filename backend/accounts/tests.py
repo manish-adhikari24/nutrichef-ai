@@ -1,3 +1,5 @@
+# Automated tests for accounts: registration, sign-in, password reset and password rules.
+# Run with: python manage.py test accounts
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +14,7 @@ from rest_framework.test import APITestCase
 from accounts import security
 from accounts.models import OneTimeCode, TrustedDevice, User
 
+# A strong test password and a valid sign-up form.
 PASSWORD = 'Kettle-Basil-47!'
 REGISTER = {
     'firstName': 'Test', 'lastName': 'Cook', 'email': 'Test@Example.test',
@@ -19,6 +22,7 @@ REGISTER = {
 }
 
 
+# Stands in for Brevo during tests: catches each email and keeps the 6-digit code.
 class Emails:
     """Captures the codes that would have been emailed."""
 
@@ -34,6 +38,7 @@ class Emails:
         return self.sent[-1][2]
 
 
+# Shared setup: clears the rate-limit cache and swaps real emails for the catcher above.
 class AuthTestCase(APITestCase):
     def setUp(self):
         cache.clear()
@@ -42,6 +47,7 @@ class AuthTestCase(APITestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    # Helper: sign up and enter the emailed code.
     def register_and_verify(self, keep=False):
         self.client.post('/api/auth/register', REGISTER, format='json')
         return self.client.post(
@@ -50,16 +56,20 @@ class AuthTestCase(APITestCase):
             format='json',
         )
 
+    # Helper: make existing codes 2 minutes old, so the resend cooldown has passed.
     def backdate_codes(self):
         OneTimeCode.objects.update(created_at=timezone.now() - timedelta(minutes=2))
 
+    # Helper: try to sign in with the test password.
     def login(self, **extra):
         return self.client.post(
             '/api/auth/login', {'email': 'test@example.test', 'password': PASSWORD, **extra}, format='json'
         )
 
 
+# FR-01: sign-up and email verification.
 class RegistrationTests(AuthTestCase):
+    # Signing up sends a code but gives no tokens yet.
     def test_register_sends_code_and_gives_no_tokens_until_verified(self):
         response = self.client.post('/api/auth/register', REGISTER, format='json')
         self.assertEqual(response.status_code, 201)
@@ -71,12 +81,14 @@ class RegistrationTests(AuthTestCase):
         self.assertIn('$12$', user.password)
         self.assertEqual(self.emails.sent[0][0], 'test@example.test')
 
+    # The right code verifies the email and signs in.
     def test_correct_code_verifies_and_signs_in(self):
         response = self.register_and_verify()
         self.assertEqual(response.status_code, 200)
         self.assertIn('access', response.data)
         self.assertTrue(User.objects.get().email_verified)
 
+    # Wrong codes fail, and the code locks after 5 tries.
     def test_wrong_code_is_rejected_and_attempts_are_limited(self):
         self.client.post('/api/auth/register', REGISTER, format='json')
         right = self.emails.last_code
@@ -88,18 +100,21 @@ class RegistrationTests(AuthTestCase):
         response = self.client.post('/api/auth/verify-email', {'email': 'test@example.test', 'code': right}, format='json')
         self.assertEqual(response.status_code, 400)
 
+    # Codes stop working after 10 minutes.
     def test_expired_code_is_rejected(self):
         self.client.post('/api/auth/register', REGISTER, format='json')
         OneTimeCode.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
         response = self.client.post('/api/auth/verify-email', {'email': 'test@example.test', 'code': self.emails.last_code}, format='json')
         self.assertEqual(response.status_code, 400)
 
+    # The database stores only a hash, never the code.
     def test_codes_are_stored_hashed(self):
         self.client.post('/api/auth/register', REGISTER, format='json')
         stored = OneTimeCode.objects.get().code_hash
         self.assertNotIn(self.emails.last_code, stored)
         self.assertEqual(len(stored), 64)
 
+    # A new code can't be sent within 60 seconds of the last one.
     def test_resend_has_a_cooldown(self):
         self.client.post('/api/auth/register', REGISTER, format='json')
         self.client.post('/api/auth/resend-code', {'purpose': 'verify', 'email': 'test@example.test'}, format='json')
@@ -108,11 +123,13 @@ class RegistrationTests(AuthTestCase):
         self.client.post('/api/auth/resend-code', {'purpose': 'verify', 'email': 'test@example.test'}, format='json')
         self.assertEqual(len(self.emails.sent), 2)
 
+    # If Brevo fails, the user gets a clear 503 error.
     def test_email_failure_is_reported(self):
         with patch('accounts.security.send_email', side_effect=security.EmailNotSent):
             response = self.client.post('/api/auth/register', REGISTER, format='json')
         self.assertEqual(response.status_code, 503)
 
+    # Bad sign-up input returns clear field errors (FR-15).
     def test_register_validation(self):
         cases = [
             ({'email': 'nope'}, 'email'),
@@ -125,18 +142,21 @@ class RegistrationTests(AuthTestCase):
             self.assertEqual(response.status_code, 400, changes)
             self.assertIn(field, response.data['fields'])
 
+    # The same email in different capitals can't register twice.
     def test_duplicate_email_rejected_case_insensitively(self):
         self.client.post('/api/auth/register', REGISTER, format='json')
         response = self.client.post('/api/auth/register', {**REGISTER, 'email': 'TEST@example.test'}, format='json')
         self.assertEqual(response.status_code, 400)
 
 
+# FR-02: sign-in, two-step codes, trusted devices and lockout.
 class LoginTests(AuthTestCase):
     def setUp(self):
         super().setUp()
         self.register_and_verify()
         self.backdate_codes()
 
+    # A new device needs the emailed code before getting tokens.
     def test_login_needs_an_emailed_code(self):
         response = self.login()
         self.assertEqual(response.data['status'], 'code_sent')
@@ -146,6 +166,7 @@ class LoginTests(AuthTestCase):
         self.assertIn('access', verify.data)
         self.assertNotIn('deviceToken', verify.data)
 
+    # "Keep me signed in" skips the code next time.
     def test_keep_signed_in_trusts_the_device_and_skips_the_code(self):
         ticket = self.login().data['ticket']
         verify = self.client.post(
@@ -157,6 +178,7 @@ class LoginTests(AuthTestCase):
         self.assertIn('access', again.data)
         self.assertEqual(len(self.emails.sent), sent_before)
 
+    # Expired or made-up device tokens still need a code.
     def test_expired_or_fake_device_still_needs_a_code(self):
         ticket = self.login().data['ticket']
         device = self.client.post(
@@ -168,17 +190,20 @@ class LoginTests(AuthTestCase):
         self.backdate_codes()
         self.assertEqual(self.login(deviceToken='made-up').data['status'], 'code_sent')
 
+    # A changed sign-in ticket is refused.
     def test_tampered_ticket_is_rejected(self):
         self.login()
         response = self.client.post('/api/auth/login/verify', {'ticket': 'fake', 'code': self.emails.last_code}, format='json')
         self.assertEqual(response.status_code, 400)
 
+    # An unverified account is sent to verification instead of signed in.
     def test_unverified_account_is_sent_to_verification(self):
         User.objects.update(email_verified=False)
         response = self.login()
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data['code'], 'verify_email')
 
+    # Same message for wrong password and unknown email, and a lock after 5 failures.
     def test_login_is_generic_and_rate_limited(self):
         wrong = self.client.post('/api/auth/login', {'email': 'test@example.test', 'password': 'wrong'}, format='json')
         unknown = self.client.post('/api/auth/login', {'email': 'x@example.test', 'password': 'wrong'}, format='json')
@@ -188,12 +213,14 @@ class LoginTests(AuthTestCase):
             self.client.post('/api/auth/login', {'email': 'test@example.test', 'password': 'wrong'}, format='json')
         self.assertEqual(self.login().status_code, 429)
 
+    # A successful sign-in records the last login time.
     def test_login_updates_last_login(self):
         User.objects.update(last_login=None)
         ticket = self.login().data['ticket']
         self.client.post('/api/auth/login/verify', {'ticket': ticket, 'code': self.emails.last_code}, format='json')
         self.assertIsNotNone(User.objects.get().last_login)
 
+    # Endpoints that need sign-in refuse missing or fake tokens.
     def test_protected_endpoints_require_a_valid_token(self):
         for path in ['/api/profile', '/api/dashboard', '/api/saved', '/api/log']:
             self.assertEqual(self.client.get(path).status_code, 401, path)
@@ -201,6 +228,7 @@ class LoginTests(AuthTestCase):
         self.assertEqual(self.client.get('/api/profile').status_code, 401)
 
 
+# Forgot-password and reset flow.
 class PasswordResetTests(AuthTestCase):
     NEW = 'Lemon-Thyme-82?'
 
@@ -209,16 +237,19 @@ class PasswordResetTests(AuthTestCase):
         self.tokens = self.register_and_verify(keep=True).data
         self.backdate_codes()
 
+    # Helper: send a reset request, with optional changes to the form.
     def reset(self, **changes):
         self.client.post('/api/auth/password/forgot', {'email': 'test@example.test'}, format='json')
         body = {'email': 'test@example.test', 'code': self.emails.last_code, 'password': self.NEW, 'confirmPassword': self.NEW, **changes}
         return self.client.post('/api/auth/password/reset', body, format='json')
 
+    # The response is the same whether or not the email has an account.
     def test_forgot_password_does_not_reveal_accounts(self):
         known = self.client.post('/api/auth/password/forgot', {'email': 'test@example.test'}, format='json')
         unknown = self.client.post('/api/auth/password/forgot', {'email': 'nobody@example.test'}, format='json')
         self.assertEqual((known.status_code, known.data), (unknown.status_code, unknown.data))
 
+    # A reset changes the password and makes old tokens stop working.
     def test_reset_changes_password_and_signs_out_everywhere(self):
         self.assertEqual(self.reset().status_code, 200)
         self.assertTrue(User.objects.get().check_password(self.NEW))
@@ -231,6 +262,7 @@ class PasswordResetTests(AuthTestCase):
         refresh = self.client.post('/api/auth/refresh', {'refresh': self.tokens['refresh']}, format='json')
         self.assertEqual(refresh.status_code, 401)
 
+    # A reset with the wrong code fails.
     def test_reset_needs_the_right_code(self):
         self.client.post('/api/auth/password/forgot', {'email': 'test@example.test'}, format='json')
         wrong = '000000' if self.emails.last_code != '000000' else '111111'
@@ -238,17 +270,21 @@ class PasswordResetTests(AuthTestCase):
         self.assertEqual(self.client.post('/api/auth/password/reset', body, format='json').status_code, 400)
         self.assertTrue(User.objects.get().check_password(PASSWORD))
 
+    # The new password must follow the rules too.
     def test_reset_applies_password_rules(self):
         response = self.reset(password='password', confirmPassword='password')
         self.assertEqual(response.status_code, 400)
         self.assertIn('password', response.data['fields'])
 
 
+# The password rules themselves.
 class PasswordRuleTests(TestCase):
+    # Helper: check that a password is refused.
     def assert_rejected(self, password, user=None):
         with self.assertRaises(ValidationError):
             validate_password(password, user)
 
+    # Too short, missing character types, too like the email, or too common: all refused.
     def test_rules(self):
         user = User(email='manish@example.test', first_name='Manish', last_name='Adhikari')
         self.assert_rejected('Short1!')  # under 10 characters
@@ -258,6 +294,7 @@ class PasswordRuleTests(TestCase):
         self.assert_rejected('Manish2026!', user)  # too close to their name
         validate_password(PASSWORD, user)
 
+    # A breached password is refused, and only the 5-character hash prefix is sent (fake HIBP reply).
     @override_settings(PASSWORD_BREACH_CHECK=True)
     @patch('accounts.validators.urllib.request.urlopen')
     def test_breached_password_is_rejected_and_only_a_prefix_is_sent(self, urlopen):
@@ -273,6 +310,7 @@ class PasswordRuleTests(TestCase):
         self.assertTrue(url.endswith('/range/' + digest[:5]))
         self.assertNotIn(digest[5:], url)
 
+    # If HIBP can't be reached, the password is allowed.
     @override_settings(PASSWORD_BREACH_CHECK=True)
     @patch('accounts.validators.urllib.request.urlopen', side_effect=OSError)
     def test_breach_service_outage_allows_the_password(self, _urlopen):

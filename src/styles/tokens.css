@@ -1,5 +1,6 @@
 /* NutriChef AI design tokens.
    Palette named after the kitchen: rice paper, peppercorn, beetroot, herb, saffron. */
+/* Light theme (the default). Every colour, font, size and spacing used across the site is defined here. */
 :root {
   --paper: #f2f3ec;      /* rice paper: page background */
   --paper-2: #e6e8de;    /* slightly deeper surface */
@@ -15,6 +16,7 @@
   --line: rgba(28, 26, 23, 0.16);
   --line-strong: rgba(28, 26, 23, 0.32);
 
+  /* Fonts: serif for headlines, sans-serif for body text, handwriting for margin notes. */
   --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --font-body: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-hand: 'Reenie Beanie', 'Comic Sans MS', cursive;
@@ -27,6 +29,7 @@
   --step-3: clamp(2rem, 1.4rem + 2.6vw, 3.25rem);
   --step-4: clamp(2.6rem, 1.6rem + 4.4vw, 5rem);
 
+  /* Spacing steps from 4px to 112px. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
@@ -36,18 +39,22 @@
   --space-7: 72px;
   --space-8: 112px;
 
+  /* Corner rounding. */
   --radius-sm: 6px;
   --radius: 12px;
   --radius-pill: 999px;
 
+  /* Animation easing and durations. */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 160ms;
   --dur: 240ms;
 
+  /* Height of the sticky site header. */
   --header-h: 72px;
   color-scheme: light;
 }
 
+/* Dark theme, chosen with the theme toggle. Only colours change. */
 :root[data-theme='dark'] {
   --paper: #16121a;      /* aubergine night */
   --paper-2: #211b26;

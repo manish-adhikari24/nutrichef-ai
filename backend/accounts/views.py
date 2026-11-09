@@ -1,3 +1,4 @@
+# API endpoints for sign-up, sign-in, codes, password reset, profile and account (FR-01, FR-02, FR-03).
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
@@ -15,12 +16,15 @@ from . import security
 from .models import OneTimeCode, TrustedDevice, User
 from .serializers import LoginSerializer, ProfileSerializer, RegisterSerializer
 
+# Lock sign-in for 15 minutes after 5 wrong passwords.
 MAX_FAILED_LOGINS = 5
 LOCK_SECONDS = 15 * 60
+# Messages reused by several views.
 WRONG_CODE = 'That code is wrong or has expired. Check your email or request a new code.'
 EMAIL_FAILED = "We couldn't send the email. Try again in a moment."
 
 
+# Issues a new access and refresh token pair. "Keep me signed in" also trusts this device.
 def tokens_for(user, keep_signed_in=False):
     update_last_login(None, user)
     refresh = RefreshToken.for_user(user)
@@ -30,6 +34,7 @@ def tokens_for(user, keep_signed_in=False):
     return data
 
 
+# The user's IP address. Render puts the real one first in X-Forwarded-For.
 def client_ip(request):
     return request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')).split(',')[0].strip()
 
@@ -43,11 +48,13 @@ def send_code(user, purpose):
     return None
 
 
+# Base class for endpoints you can use without being signed in (sign-up, login, reset).
 class PublicView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
 
+# POST /api/auth/register: create the account, then email a verification code. No tokens yet.
 class RegisterView(PublicView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -60,6 +67,7 @@ class RegisterView(PublicView):
         return Response({'status': 'verify_email', 'email': user.email}, status=status.HTTP_201_CREATED)
 
 
+# POST /api/auth/verify-email: check the code, mark the email verified and sign the user in.
 class VerifyEmailView(PublicView):
     def post(self, request):
         email = str(request.data.get('email', '')).strip().lower()
@@ -71,12 +79,14 @@ class VerifyEmailView(PublicView):
         return Response(tokens_for(user, bool(request.data.get('keepSignedIn'))))
 
 
+# POST /api/auth/login: step 1 of sign-in.
 class LoginView(PublicView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email'].strip().lower()
 
+        # Count failed attempts per email and IP. After 5, refuse for 15 minutes.
         key = f'failed-login:{email}:{client_ip(request)}'
         if cache.get(key, 0) >= MAX_FAILED_LOGINS:
             return Response(
@@ -84,13 +94,16 @@ class LoginView(PublicView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
+        # Django checks the password against the bcrypt hash.
         user = authenticate(request, username=email, password=serializer.validated_data['password'])
         if user is None:
             cache.set(key, cache.get(key, 0) + 1, LOCK_SECONDS)
             # The same message for a wrong password or unknown email prevents account enumeration.
             return Response({'error': 'Invalid email or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+        # Correct password: reset the failure count.
         cache.delete(key)
 
+        # Unverified account: send a new verification code and tell the front end to show that screen.
         if not user.email_verified:
             failed = send_code(user, OneTimeCode.VERIFY)
             if failed:
@@ -100,15 +113,18 @@ class LoginView(PublicView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Trusted device ("Keep me signed in"): skip the code and sign in straight away.
         if security.is_trusted_device(user, request.data.get('deviceToken')):
             return Response(tokens_for(user))
 
+        # New device: email a sign-in code and return a ticket for step 2.
         failed = send_code(user, OneTimeCode.LOGIN)
         if failed:
             return failed
         return Response({'status': 'code_sent', 'ticket': security.make_ticket(user)})
 
 
+# POST /api/auth/login/verify: step 2. Check the ticket and code, then issue tokens.
 class LoginVerifyView(PublicView):
     def post(self, request):
         user_id = security.read_ticket(request.data.get('ticket'))
@@ -120,10 +136,12 @@ class LoginVerifyView(PublicView):
         return Response(tokens_for(user, bool(request.data.get('keepSignedIn'))))
 
 
+# POST /api/auth/resend-code: send another code, within the cooldown limits.
 class ResendCodeView(PublicView):
     """Always answers the same way, so it can't reveal which emails have accounts."""
 
     def post(self, request):
+        # A sign-in code finds the user from the ticket. The others use the email.
         purpose = request.data.get('purpose')
         if purpose == OneTimeCode.LOGIN:
             user_id = security.read_ticket(request.data.get('ticket'))
@@ -132,6 +150,7 @@ class ResendCodeView(PublicView):
             user = User.objects.filter(email=str(request.data.get('email', '')).strip().lower()).first()
         else:
             raise serializers.ValidationError({'purpose': 'Choose a valid code type.'})
+        # Don't send a verification code to an account that's already verified.
         if user is not None and not (purpose == OneTimeCode.VERIFY and user.email_verified):
             failed = send_code(user, purpose)
             if failed:
@@ -139,6 +158,7 @@ class ResendCodeView(PublicView):
         return Response({'status': 'sent'})
 
 
+# POST /api/auth/password/forgot: email a reset code. Answers "sent" either way, so it can't reveal accounts.
 class ForgotPasswordView(PublicView):
     def post(self, request):
         email = str(request.data.get('email', '')).strip().lower()
@@ -152,6 +172,7 @@ class ForgotPasswordView(PublicView):
         return Response({'status': 'sent'})
 
 
+# POST /api/auth/password/reset: set a new password using the emailed code.
 class ResetPasswordView(PublicView):
     def post(self, request):
         data = request.data
@@ -159,14 +180,17 @@ class ResetPasswordView(PublicView):
         password = str(data.get('password', ''))
         if password != str(data.get('confirmPassword', '')):
             raise serializers.ValidationError({'confirmPassword': 'Passwords do not match.'})
+        # The new password must follow the same rules as at sign-up.
         if user is not None:
             try:
                 validate_password(password, user)
             except DjangoValidationError as error:
                 raise serializers.ValidationError({'password': error.messages[0]}) from error
+        # A wrong email or wrong code gets the same message.
         if user is None or not security.check_code(user, OneTimeCode.RESET, data.get('code', '')):
             return Response({'error': WRONG_CODE}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Save the new password and sign out everywhere: older tokens stop working and trusted devices are cleared.
         with transaction.atomic():
             user.set_password(password)
             user.password_changed_at = timezone.now()
@@ -177,12 +201,14 @@ class ResetPasswordView(PublicView):
         return Response({'status': 'reset'})
 
 
+# DELETE /api/auth/devices: forget every "Keep me signed in" device (Settings page).
 class TrustedDevicesView(APIView):
     def delete(self, request):
         TrustedDevice.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# GET or PUT /api/profile, always for the signed-in user only (FR-03).
 class ProfileView(APIView):
     def get(self, request):
         return Response(ProfileSerializer.to_payload(request.user))
@@ -195,6 +221,7 @@ class ProfileView(APIView):
         return Response(ProfileSerializer.to_payload(request.user))
 
 
+# DELETE /api/account: delete the user. Their profile, allergies, recipes and logs go with them (cascade).
 class AccountView(APIView):
     def delete(self, request):
         request.user.delete()

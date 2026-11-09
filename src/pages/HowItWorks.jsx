@@ -1,9 +1,11 @@
+// Public "How it works" page: an app preview and a diagram of what goes in and what comes out.
 import { Link } from 'react-router-dom';
 import { Basket, Check, FirstAidKit, ForkKnife, Heart, Timer } from '@phosphor-icons/react';
 import { LogoMark } from '../components/Logo.jsx';
 import AppMock from '../components/AppMock.jsx';
 import SignupBand from '../components/SignupBand.jsx';
 
+// What the app takes into account.
 const INPUTS = [
   { icon: Basket, label: 'Your ingredients', hint: 'typed or picked from suggestions' },
   { icon: FirstAidKit, label: 'Your allergies', hint: 'stored in your allergy profile' },
@@ -12,6 +14,7 @@ const INPUTS = [
   { icon: Timer, label: 'Your filters', hint: 'meal, cuisine, time, difficulty, budget' },
 ];
 
+// What the app gives back.
 const OUTPUTS = [
   'A structured recipe with quantities and steps',
   'An allergen check, with unsafe recipes blocked',
@@ -20,6 +23,7 @@ const OUTPUTS = [
   'Substitutes for what you don\'t have',
 ];
 
+// Diagram: inputs on the left, the NutriChef AI mark in the middle, outputs on the right.
 function EngineDiagram() {
   return (
     <div className="engine" role="group" aria-label="What NutriChef AI considers and what it returns">
@@ -67,12 +71,14 @@ export default function HowItWorks() {
         </div>
       </section>
 
+      {/* Three-step preview of the app. */}
       <section className="section tour-mock" aria-label="The app in three steps">
         <div className="wrap">
           <AppMock />
         </div>
       </section>
 
+      {/* The inputs and outputs diagram. */}
       <section className="section" aria-labelledby="engine-title">
         <div className="wrap">
           <div className="section-head">

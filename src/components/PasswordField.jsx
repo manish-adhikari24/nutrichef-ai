@@ -1,8 +1,11 @@
+// Password input with a show/hide button, plus optional hint and error text.
 import { useState } from 'react';
 import { Eye, EyeSlash } from '@phosphor-icons/react';
 
 export default function PasswordField({ id, label, error, hint, ...inputProps }) {
+  // Whether the password is visible as plain text.
   const [shown, setShown] = useState(false);
+  // Link the input to its hint and error so screen readers read them.
   const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ');
 
   return (
@@ -11,6 +14,7 @@ export default function PasswordField({ id, label, error, hint, ...inputProps })
         {label}
       </label>
       <div className="password-wrap">
+        {/* type switches between "password" (dots) and "text" (visible). */}
         <input
           id={id}
           type={shown ? 'text' : 'password'}

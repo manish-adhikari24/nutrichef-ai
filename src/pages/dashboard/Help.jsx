@@ -1,3 +1,4 @@
+// Help page: frequently asked questions as [question, answer] pairs.
 const QUESTIONS = [
   ['How do I generate a recipe?', 'Open Generate recipe, add your ingredients, choose any filters and select Generate recipe.'],
   ['How are allergies handled?', 'Add them in your Allergy profile. We check your ingredients and each recipe against that list, and block recipes that contain an allergen. We can\'t see inside packaged products, so always check labels yourself.'],
@@ -7,6 +8,7 @@ const QUESTIONS = [
   ['Where is my data stored?', 'In your NutriChef AI account. To write recipes, your ingredients and filters go to our AI provider, Anthropic, along with your diet, targets and foods to avoid if you consent. It doesn\'t receive your name or body details. You can delete everything in Settings.'],
 ];
 
+// Each question is a <details> element that opens to show its answer.
 export default function Help() {
   return (
     <>

@@ -1,3 +1,4 @@
+// Login page. Step 1: email and password. Step 2 (new device): the emailed code (FR-02).
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout.jsx';
@@ -11,16 +12,20 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
+  // "Keep me signed in on this device".
   const [keep, setKeep] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Set when the server asks for an emailed code. Switches to step 2.
   const [ticket, setTicket] = useState(null);
 
+  // Already signed in: go to the dashboard, or the page they were trying to open.
   if (isSignedIn()) return <Navigate to={state?.from ?? '/dashboard'} replace />;
   const done = () => navigate(state?.from ?? '/dashboard');
 
   async function onSubmit(e) {
+    // Check both fields are filled in before calling the server.
     e.preventDefault();
     const found = {};
     if (!email.trim()) found.email = 'Enter your email address.';
@@ -30,6 +35,7 @@ export default function Login() {
     if (Object.keys(found).length) return;
     setBusy(true);
     try {
+      // Trusted device: signed in straight away. Otherwise a ticket comes back for step 2.
       const result = await login(email, password);
       if (result.ticket) {
         setTicket(result.ticket);
@@ -38,6 +44,7 @@ export default function Login() {
         done();
       }
     } catch (error) {
+      // The account isn't verified yet: go to the verification page.
       if (error.code === 'verify_email') {
         navigate('/verify-email', { state: { email: error.email ?? email, sent: true } });
         return;
@@ -47,6 +54,7 @@ export default function Login() {
     }
   }
 
+  // Step 2: the email code screen.
   if (ticket) {
     return (
       <AuthLayout
@@ -69,6 +77,7 @@ export default function Login() {
     );
   }
 
+  // Step 1: the sign-in form.
   return (
     <AuthLayout
       title="Welcome back"
@@ -77,6 +86,7 @@ export default function Login() {
       imageAlt="A colorful bowl of chickpeas, avocado, sweet potato and tomatoes from above"
       note="your kitchen missed you"
     >
+      {/* Success notice (e.g. after a password reset) or the server's error. */}
       {state?.notice && !formError && <p className="form-notice" role="status">{state.notice}</p>}
       {formError && <p className="error-summary" role="alert">{formError}</p>}
       <form className="auth-form" onSubmit={onSubmit} noValidate>

@@ -1,3 +1,4 @@
+// Allergy Profile page: pick common allergens or add your own (FR-03, used by FR-06).
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Check, Plus, X } from '@phosphor-icons/react';
@@ -6,12 +7,15 @@ import { saveProfile } from '../../lib/api.js';
 
 export default function AllergyProfile() {
   const { profile, setProfile } = useOutletContext();
+  // The custom allergy being typed, its error, and the save message.
   const [typed, setTyped] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
+  // Custom allergies are stored as one comma-separated string. Split it into a list.
   const others = profile.otherAllergies.split(',').map((a) => a.trim()).filter(Boolean);
 
+  // Save a change to the profile and show a message (screen readers announce it too).
   async function update(changes, message) {
     try {
       setProfile(await saveProfile({ ...profile, ...changes }));
@@ -21,6 +25,7 @@ export default function AllergyProfile() {
     }
   }
 
+  // Add or remove one common allergen.
   function toggle(allergen) {
     const on = profile.allergies.includes(allergen);
     update(
@@ -29,6 +34,7 @@ export default function AllergyProfile() {
     );
   }
 
+  // Add a typed allergy, unless it's blank or already listed (ignoring capitals).
   function addOther(e) {
     e.preventDefault();
     const name = typed.trim();
@@ -50,6 +56,7 @@ export default function AllergyProfile() {
         We check every ingredient and recipe against this list, and block any recipe that contains one of them.
       </p>
 
+      {/* One toggle button per common allergen. */}
       <section aria-labelledby="common-title" className="profile-section">
         <h2 id="common-title" className="dash-h2">Common allergens</h2>
         <div className="chip-list" role="group" aria-labelledby="common-title">
@@ -65,6 +72,7 @@ export default function AllergyProfile() {
         </div>
       </section>
 
+      {/* Custom allergies: add form and a list with remove buttons. */}
       <section aria-labelledby="other-title" className="profile-section">
         <h2 id="other-title" className="dash-h2">Other allergies</h2>
         <form className="dash-add" onSubmit={addOther} noValidate>

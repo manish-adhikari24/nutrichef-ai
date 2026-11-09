@@ -1,3 +1,4 @@
+// Public Results page: the project's targets and the reasons the app matters.
 import SignupBand from '../components/SignupBand.jsx';
 
 // These are the project's targets from its report, not measured results.
@@ -7,12 +8,14 @@ const TARGETS = [
   { value: '100%', label: 'Of generated recipes checked against your allergy list', hint: 'Safety requirement' },
 ];
 
+// Published statistics on food waste and protein, each with its source.
 const WHY = [
   { value: '1.05 billion tons', label: 'of food was wasted across households, food service and retail in 2022.', source: 'UNEP Food Waste Index Report, 2024' },
   { value: '1 billion+ meals', label: 'are wasted by households around the world every day.', source: 'UNEP Food Waste Index Report, 2024' },
   { value: '71%', label: 'of Americans were trying to eat more protein in 2024, up from 59% in 2022.', source: 'IFIC Food & Health Survey, 2024' },
 ];
 
+// A list of big numbers with a label and a small footnote (`footKey` picks hint or source).
 function Stats({ items, footKey }) {
   return (
     <ul className="result-stats">

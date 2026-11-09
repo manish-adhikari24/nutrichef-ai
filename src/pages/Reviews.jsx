@@ -1,3 +1,4 @@
+// Public Reviews page (a placeholder until real user feedback is collected).
 import { Link } from 'react-router-dom';
 import SignupBand from '../components/SignupBand.jsx';
 

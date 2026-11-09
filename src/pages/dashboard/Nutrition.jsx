@@ -1,3 +1,4 @@
+// Nutrition tracker page: today's or this week's intake against the user's targets (FR-14).
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { X } from '@phosphor-icons/react';
@@ -9,11 +10,14 @@ import { useLoad } from '../../lib/useLoad.js';
 
 export default function Nutrition() {
   const { profile } = useOutletContext();
+  // "today" or "week".
   const [view, setView] = useState('today');
   const [message, setMessage] = useState('');
+  // Today's meals and the last 7 days' totals from /api/log.
   const { data, error, loading, reload } = useLoad(getLog);
   const targets = dailyTargets(profile);
 
+  // Remove a logged meal, then reload.
   async function remove(id) {
     try {
       await removeLogged(id);
@@ -23,6 +27,7 @@ export default function Nutrition() {
     }
   }
 
+  // Add up today's meals, or the 7 daily totals.
   const totals = data && (view === 'today' ? totalsFor(data.today) : totalsFor(data.days));
   // The week view compares seven days of intake with seven days of targets.
   const shownTargets = targets && view === 'week'
@@ -33,6 +38,7 @@ export default function Nutrition() {
     <>
       <div className="dash-top">
         <h1 className="dash-title">Nutrition tracker</h1>
+        {/* Today / This week switch. */}
         <div className="chip-list" role="group" aria-label="Time period">
           <button type="button" className={`chip chip-btn${view === 'today' ? ' chip-on' : ''}`} aria-pressed={view === 'today'} onClick={() => setView('today')}>Today</button>
           <button type="button" className={`chip chip-btn${view === 'week' ? ' chip-on' : ''}`} aria-pressed={view === 'week'} onClick={() => setView('week')}>This week</button>
@@ -47,6 +53,7 @@ export default function Nutrition() {
 
       {!data && <LoadStatus loading={loading} error={error} onRetry={reload} />}
 
+      {/* Nothing logged: point to Generate or Saved. Otherwise show progress bars. */}
       {data && (totals.kcal === 0 ? (
         <p className="dash-empty">
           Nothing logged {view === 'today' ? 'today' : 'this week'}.{' '}
@@ -57,6 +64,7 @@ export default function Nutrition() {
         <MacroBars totals={totals} targets={shownTargets} />
       ))}
 
+      {/* List of today's meals, each with a remove button. */}
       {data && view === 'today' && data.today.length > 0 && (
         <section aria-labelledby="eaten-title" className="dash-section">
           <h2 id="eaten-title" className="dash-h2">Eaten today</h2>

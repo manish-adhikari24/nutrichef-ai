@@ -1,7 +1,9 @@
 // Draft terms for Australia. A lawyer should review these before launch.
 // Fill in the bracketed details: they are highlighted wherever the terms are shown.
+// The draft date shown at the top of the Terms pop-up.
 export const TERMS_STATUS = 'Draft, 31 October 2026';
 
+// Each section has a title and one or more paragraphs. TermsDialog shows them as a numbered list.
 export const TERMS = [
   {
     title: 'About these terms',

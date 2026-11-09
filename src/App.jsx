@@ -1,3 +1,4 @@
+// The app's routes: public pages share the header and footer, and dashboard pages share the dashboard layout.
 import { useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import Header from './components/Header.jsx';
@@ -26,6 +27,7 @@ import Help from './pages/dashboard/Help.jsx';
 import More from './pages/dashboard/More.jsx';
 import Profile from './pages/dashboard/Profile.jsx';
 
+// Browser tab title for each page.
 const TITLES = {
   '/': 'NutriChef AI | Cook what you have. Eat what you need.',
   '/how-it-works': 'How it works | NutriChef AI',
@@ -50,6 +52,7 @@ const TITLES = {
   '/dashboard/profile': 'Your profile | NutriChef AI',
 };
 
+// Wrapper for the public pages: header, page content, footer.
 function SiteLayout() {
   return (
     <>
@@ -64,6 +67,7 @@ function SiteLayout() {
 
 export default function App() {
   const { pathname } = useLocation();
+  // Skip the focus move on first load, so the page doesn't jump.
   const firstRender = useRef(true);
 
   // On every route change: reset scroll, update the title, move focus to the new page.
@@ -79,8 +83,10 @@ export default function App() {
 
   return (
     <>
+      {/* Lets keyboard users jump past the menu. */}
       <a className="skip-link" href="#main">Skip to content</a>
       <Routes>
+        {/* Public pages. Unknown addresses show the 404 page. */}
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
@@ -95,6 +101,7 @@ export default function App() {
           <Route path="/signin" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Route>
+        {/* Signed-in pages. DashboardLayout sends signed-out visitors to login. */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="generate" element={<GenerateRecipe />} />
