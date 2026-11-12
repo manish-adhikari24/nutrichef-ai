@@ -1,4 +1,4 @@
-# Automated tests for recipes, profile, nutrition, allergies, saved recipes, tracking, errors and the assistant.
+# Automated tests for recipes, profile, nutrition, allergies, saved recipes, tracking, errors and the recipe chat.
 # Run with: python manage.py test recipes
 import json
 from unittest.mock import patch
@@ -326,18 +326,26 @@ class ErrorFormatTests(APITestCase):
         self.assertIn('error', response.data)
 
 
-# A fake reply for the assistant tests.
+# Fake Anthropic replies for the chat tests: a plain answer, or a call to the update_recipe tool.
+class FakeToolUse:
+    type = 'tool_use'
+    name = 'update_recipe'
+
+    def __init__(self, recipe, summary='Made it spicier.'):
+        self.input = {'summary': summary, 'recipe': recipe}
+
+
 class FakeAnswer:
     stop_reason = 'end_turn'
 
-    def __init__(self, text):
-        self.content = [FakeBlock(text)]
+    def __init__(self, *blocks):
+        self.content = [FakeBlock(b) if isinstance(b, str) else b for b in blocks]
 
 
-# The "Ask about this recipe" assistant, switched on and with the AI replaced by a fake.
-@patch.dict('os.environ', {'RECIPE_ASSISTANT_ENABLED': '1', 'ANTHROPIC_API_KEY': 'test-key'})
-class AssistantTests(Base):
-    # Helper: create a recipe to ask about.
+# The recipe chat, switched on and with the AI replaced by a fake.
+@patch.dict('os.environ', {'RECIPE_CHAT_ENABLED': '1', 'ANTHROPIC_API_KEY': 'test-key'})
+class ChatTests(Base):
+    # Helper: create a recipe to chat about.
     def make_recipe(self, user=None):
         return GeneratedRecipe.objects.create(
             user=user or self.user, title='Test bowl', meal_type='Dinner', difficulty='Easy', cooking_time=20, servings=2,
@@ -345,46 +353,123 @@ class AssistantTests(Base):
             content={'description': '', 'ingredients': [{'name': 'Eggs', 'amount': '2', 'missing': False}], 'steps': ['Cook.'], 'why_it_fits': '', 'label_checks': [], 'constraint_warning': ''},
         )
 
-    # Helper: send a chat to the assistant.
-    def ask(self, recipe, messages):
-        return self.client.post(f'/api/recipes/{recipe.id}/ask', {'messages': messages}, format='json')
+    # Helper: send one chat message.
+    def chat(self, recipe, message='How do I keep it moist?'):
+        return self.client.post(f'/api/recipes/{recipe.id}/chat', {'message': message}, format='json')
 
-    # The recipe and the avoid list are sent with the question.
-    @patch('recipes.services.assistant.anthropic.Anthropic')
-    def test_answers_with_recipe_and_avoid_list(self, client):
-        client.return_value.messages.create.return_value = FakeAnswer('Use a lid.')
-        response = self.ask(self.make_recipe(), [{'role': 'user', 'content': 'How do I keep it moist?'}])
+    # A question gets an answer, the recipe stays the same, and both messages are stored.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_question_is_answered_and_stored(self, client):
+        create = client.return_value.beta.messages.create
+        create.return_value = FakeAnswer('Use a lid.')
+        recipe = self.make_recipe()
+        response = self.chat(recipe)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['answer'], 'Use a lid.')
-        sent = client.return_value.messages.create.call_args.kwargs
-        self.assertEqual(sent['model'], 'claude-haiku-5-5')
-        first = sent['messages'][0]['content']
-        self.assertIn('<recipe>', first)
-        self.assertIn('<avoid>Soy, kiwi</avoid>', first)
-        self.assertNotIn('Test Cook', first)
+        self.assertFalse(response.data['changed'])
+        self.assertEqual([m['content'] for m in response.data['messages']], ['How do I keep it moist?', 'Use a lid.'])
+        self.assertEqual(recipe.messages.count(), 2)
+        sent = create.call_args.kwargs
+        last = sent['messages'][-1]['content']
+        self.assertIn('<recipe>', last)
+        self.assertIn('<avoid>Soy, kiwi</avoid>', last)
+        self.assertNotIn('Test Cook', last)
+        self.assertEqual(sent['tools'][0]['name'], 'update_recipe')
 
-    # Without consent, no avoid list is sent.
-    @patch('recipes.services.assistant.anthropic.Anthropic')
-    def test_no_consent_sends_no_avoid_list(self, client):
-        client.return_value.messages.create.return_value = FakeAnswer('Sure.')
+        # The next message carries the earlier turns as history.
+        create.return_value = FakeAnswer('About 3 days.')
+        self.chat(recipe, 'How long does it keep?')
+        history = create.call_args.kwargs['messages']
+        self.assertEqual([m['role'] for m in history], ['user', 'assistant', 'user'])
+        self.assertEqual(history[0]['content'], 'How do I keep it moist?')
+
+    # A change replaces the recipe in place, with nutrition recalculated, and the saved copy shows it too.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_change_updates_the_recipe_in_place(self, client):
+        client.return_value.beta.messages.create.return_value = FakeAnswer(FakeToolUse(ai_recipe(title='Spicy bowl')))
+        recipe = self.make_recipe()
+        self.client.post('/api/saved', {'recipeId': recipe.id}, format='json')
+        response = self.chat(recipe, 'Make it spicier')
+        self.assertTrue(response.data['changed'])
+        self.assertEqual(response.data['recipe']['title'], 'Spicy bowl')
+        self.assertEqual(response.data['recipe']['id'], recipe.id)
+        self.assertEqual(response.data['messages'][1]['content'], 'Made it spicier.')
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title, 'Spicy bowl')
+        self.assertEqual(recipe.nutrition_source, 'partly_estimated')
+        self.assertEqual(GeneratedRecipe.objects.count(), 1)
+        self.assertEqual(self.client.get('/api/saved').data['results'][0]['recipe']['title'], 'Spicy bowl')
+
+    # A change that adds an allergen is refused and the recipe is left alone.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_unsafe_change_is_blocked(self, client):
+        client.return_value.beta.messages.create.return_value = FakeAnswer(FakeToolUse(ai_recipe('Soy sauce', title='Soy bowl')))
+        recipe = self.make_recipe()
+        response = self.chat(recipe, 'Add soy sauce')
+        self.assertFalse(response.data['changed'])
+        self.assertIn('Soy', response.data['messages'][1]['content'])
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title, 'Test bowl')
+
+    # Without consent no avoid list is sent, but a change is still allergy-checked.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_no_consent_sends_no_avoid_list_but_still_checks(self, client):
+        create = client.return_value.beta.messages.create
+        create.return_value = FakeAnswer(FakeToolUse(ai_recipe('Soy sauce')))
         self.client.put('/api/profile', {**PROFILE, 'healthConsent': False}, format='json')
-        self.ask(self.make_recipe(), [{'role': 'user', 'content': 'Can I freeze it?'}])
-        self.assertIn('<avoid>none listed</avoid>', client.return_value.messages.create.call_args.kwargs['messages'][0]['content'])
+        response = self.chat(self.make_recipe(), 'Add soy sauce')
+        self.assertIn('<avoid>none listed</avoid>', create.call_args.kwargs['messages'][-1]['content'])
+        self.assertFalse(response.data['changed'])
 
-    # Users can't ask about other people's recipes.
+    # An incomplete recipe from the AI, a refusal or an outage changes nothing and stores nothing.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_bad_replies_change_nothing(self, client):
+        create = client.return_value.beta.messages.create
+        recipe = self.make_recipe()
+        create.return_value = FakeAnswer(FakeToolUse({'title': 'Broken'}))
+        self.assertEqual(self.chat(recipe, 'Make it spicier').status_code, 503)
+        refusal = FakeAnswer('No.')
+        refusal.stop_reason = 'refusal'
+        create.return_value = refusal
+        self.assertEqual(self.chat(recipe).status_code, 422)
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.title, 'Test bowl')
+        self.assertEqual(recipe.messages.count(), 0)
+
+    # The recent list is newest first, a recipe reopens with its chat, and deleting removes it.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_recent_list_open_and_delete(self, client):
+        client.return_value.beta.messages.create.return_value = FakeAnswer('Use a lid.')
+        first = self.make_recipe()
+        second = self.make_recipe()
+        self.chat(first)
+        recent = self.client.get('/api/recipes/recent').data['results']
+        self.assertEqual([r['id'] for r in recent], [second.id, first.id])
+        opened = self.client.get(f'/api/recipes/{first.id}').data
+        self.assertEqual(opened['recipe']['title'], 'Test bowl')
+        self.assertEqual(len(opened['messages']), 2)
+        self.assertFalse(opened['saved'])
+        self.assertEqual(self.client.delete(f'/api/recipes/{first.id}').status_code, 204)
+        self.assertEqual(len(self.client.get('/api/recipes/recent').data['results']), 1)
+
+    # Users can't open, chat about or delete other people's recipes, or see them in their list.
     def test_other_peoples_recipes_are_forbidden(self):
         other = self.make_recipe(user=self.other_client_user())
-        self.assertEqual(self.ask(other, [{'role': 'user', 'content': 'Hi'}]).status_code, 403)
+        self.assertEqual(self.chat(other).status_code, 403)
+        self.assertEqual(self.client.get(f'/api/recipes/{other.id}').status_code, 403)
+        self.assertEqual(self.client.delete(f'/api/recipes/{other.id}').status_code, 403)
+        self.assertEqual(self.client.get('/api/recipes/recent').data['results'], [])
 
-    # Message rules: must end with a question, alternate turns, stay short.
+    # Messages must be 1 to 500 characters.
     def test_message_rules(self):
         recipe = self.make_recipe()
-        self.assertEqual(self.ask(recipe, [{'role': 'assistant', 'content': 'Hi'}]).status_code, 400)
-        self.assertEqual(self.ask(recipe, [{'role': 'user', 'content': 'x' * 501}]).status_code, 400)
-        turns = [{'role': 'user', 'content': 'a'}, {'role': 'user', 'content': 'b'}]
-        self.assertEqual(self.ask(recipe, turns).status_code, 400)
+        self.assertEqual(self.chat(recipe, '').status_code, 400)
+        self.assertEqual(self.chat(recipe, 'x' * 501).status_code, 400)
 
-    # The assistant is off unless switched on.
+    # The chat is off unless switched on.
     def test_switched_off_by_default(self):
-        with patch.dict('os.environ', {'RECIPE_ASSISTANT_ENABLED': ''}):
-            self.assertEqual(self.ask(self.make_recipe(), [{'role': 'user', 'content': 'Hi'}]).status_code, 404)
+        recipe = self.make_recipe()
+        with patch.dict('os.environ', {'RECIPE_CHAT_ENABLED': ''}):
+            self.assertEqual(self.chat(recipe).status_code, 404)
+            self.assertEqual(self.client.get('/api/recipes/recent').status_code, 404)
+            self.assertEqual(self.client.get(f'/api/recipes/{recipe.id}').status_code, 404)
+            self.assertEqual(self.client.delete(f'/api/recipes/{recipe.id}').status_code, 404)

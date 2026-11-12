@@ -214,11 +214,20 @@ export function allAllergies(profile) {
 
 /* ---------- Recipes ---------- */
 
-// Generate a real recipe, a sample recipe, or ask the assistant about a recipe.
+// Generate a real recipe or a sample recipe.
 export const generateRecipe = (body) => request('recipes/generate', { method: 'POST', body });
 export const sampleRecipe = (body) => request('recipes/sample', { method: 'POST', body });
-export const askAboutRecipe = (recipeId, messages) =>
-  request(`recipes/${recipeId}/ask`, { method: 'POST', body: { messages } });
+
+/* ---------- Recipe chat ---------- */
+
+// The 20 newest recipes. The server answers 404 while the chat feature is switched off.
+export const listRecent = () => request('recipes/recent');
+// One recipe with its chat messages and whether it's saved.
+export const getRecipeChat = (recipeId) => request(`recipes/${recipeId}`);
+// Delete a recipe, its chat and its saved copy.
+export const deleteRecipe = (recipeId) => request(`recipes/${recipeId}`, { method: 'DELETE' });
+// Send a chat message. The reply may come with a changed recipe.
+export const sendChat = (recipeId, message) => request(`recipes/${recipeId}/chat`, { method: 'POST', body: { message } });
 
 // One page of saved recipes, with optional filter tag and search text.
 export function listSaved({ page = 1, tag = '', q = '' } = {}) {

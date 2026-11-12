@@ -1,9 +1,12 @@
 // Generate Recipe page: add ingredients, choose filters, generate, then save or log the recipe (FR-04 to FR-10).
-import { useRef, useState } from 'react';
+// When the recipe chat is switched on, it also shows a "Recent recipes" list and a chat under the recipe.
+import { useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { BookmarkSimple, Check, ForkKnife, Plus, Sparkle, Warning, X } from '@phosphor-icons/react';
+import RecentRecipes from '../../components/RecentRecipes.jsx';
 import RecipeCard from '../../components/RecipeCard.jsx';
-import { allAllergies, generateRecipe, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
+import RecipeChat from '../../components/RecipeChat.jsx';
+import { allAllergies, deleteRecipe, generateRecipe, getRecipeChat, listRecent, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
 import { findAllergens } from '../../lib/allergens.js';
 import { CATEGORIES, normalizeList } from '../../lib/ingredients.js';
 import { dailyTargets } from '../../lib/nutrition.js';
@@ -51,6 +54,12 @@ export default function GenerateRecipe() {
   const [logged, setLogged] = useState(false);
   // The ingredient box, so focus can return to it after adding.
   const inputRef = useRef(null);
+  // Recipe chat. `recent` is null while the feature is switched off (or not yet checked).
+  const [recent, setRecent] = useState(null);
+  const [messages, setMessages] = useState([]);
+  // The recent recipe waiting for delete confirmation.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const dialogRef = useRef(null);
 
   // Allergies, consent and cleaned-up ingredient names, worked out from the profile and the list.
   const allergies = allAllergies(profile);
@@ -106,6 +115,79 @@ export default function GenerateRecipe() {
   }
 
   // Generate a recipe with the given API call (real or sample). Stops early if there are no ingredients or there's an allergy conflict.
+  // Load the recent list. A failure (404 while the feature is off) hides the list and the chat.
+  async function loadRecent() {
+    try {
+      setRecent((await listRecent()).results);
+      return true;
+    } catch {
+      setRecent(null);
+      return false;
+    }
+  }
+
+  // On opening the page: load the list, and the chat of the recipe that's already showing.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!(await loadRecent()) || !currentRecipe?.id) return;
+      try {
+        const data = await getRecipeChat(currentRecipe.id);
+        if (active) {
+          setMessages(data.messages);
+          setSaved(data.saved);
+        }
+      } catch {
+        // The recipe may have been deleted elsewhere. The page still works without its chat.
+      }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Open or close the delete dialog to match pendingDelete.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (pendingDelete && !dialog.open) dialog.showModal();
+    if (!pendingDelete && dialog.open) dialog.close();
+  }, [pendingDelete]);
+
+  // Reopen a recipe from the recent list, with its chat.
+  async function openRecipe(id) {
+    setMessage('');
+    try {
+      const data = await getRecipeChat(id);
+      setCurrentRecipe(data.recipe);
+      setMessages(data.messages);
+      setSaved(data.saved);
+      setLogged(false);
+      setAccepted({});
+      setNote('');
+      setRating(0);
+      setError(null);
+      requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    } catch (err) {
+      setError({ message: err.message });
+    }
+  }
+
+  // Delete a recent recipe after confirmation. If it's the one showing, clear it.
+  async function confirmDelete() {
+    const { id } = pendingDelete;
+    setPendingDelete(null);
+    try {
+      await deleteRecipe(id);
+      if (currentRecipe?.id === id) {
+        setCurrentRecipe(null);
+        setMessages([]);
+      }
+      loadRecent();
+    } catch (err) {
+      setError({ message: err.message });
+    }
+  }
+
   async function requestRecipe(call) {
     setMessage('');
     if (names.length === 0) {
@@ -127,6 +209,9 @@ export default function GenerateRecipe() {
       setRating(0);
       setSaved(false);
       setLogged(false);
+      // A new recipe starts with an empty chat and goes to the top of the recent list.
+      setMessages([]);
+      if (recent !== null) loadRecent();
       requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     } catch (err) {
       // A blocked recipe clears the old one, so an unsafe recipe is never left on screen.
@@ -162,7 +247,7 @@ export default function GenerateRecipe() {
     }
   }
 
-  return (
+  const page = (
     <>
       <h1 className="dash-title">What&apos;s in your kitchen today?</h1>
       <p className="lede generate-lede">
@@ -366,6 +451,42 @@ export default function GenerateRecipe() {
           </div>
         </RecipeCard>
       )}
+
+      {/* The chat, when the feature is on and the recipe is stored on the server. */}
+      {recent !== null && currentRecipe?.id && (
+        <RecipeChat
+          key={currentRecipe.id}
+          recipe={currentRecipe}
+          messages={messages}
+          setMessages={setMessages}
+          onRecipeChange={(recipe) => {
+            setCurrentRecipe(recipe);
+            // The title may have changed, so refresh the list.
+            loadRecent();
+          }}
+        />
+      )}
     </>
+  );
+
+  // Chat switched off: the page as it always was.
+  if (recent === null) return page;
+
+  // Chat switched on: recent recipes on the left, the page on the right.
+  return (
+    <div className="generate-shell">
+      <RecentRecipes items={recent} activeId={currentRecipe?.id} onOpen={openRecipe} onDelete={setPendingDelete} />
+      <div className="generate-main">{page}</div>
+
+      {/* Delete confirmation dialog. */}
+      <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="recent-delete-title" onClose={() => setPendingDelete(null)}>
+        <h2 id="recent-delete-title" className="dash-h2">Delete this recipe?</h2>
+        <p>{pendingDelete?.title} and its chat will be deleted. It will also be removed from your saved recipes.</p>
+        <div className="confirm-actions">
+          <button type="button" className="btn btn-ghost" onClick={() => setPendingDelete(null)}>Keep recipe</button>
+          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Delete recipe</button>
+        </div>
+      </dialog>
+    </div>
   );
 }

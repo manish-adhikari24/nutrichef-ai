@@ -114,6 +114,20 @@ class GeneratedRecipe(models.Model):
         ordering = ['-generated_at']
 
 
+# One chat message about a recipe: the cook's message or the assistant's reply.
+class RecipeMessage(models.Model):
+    recipe = models.ForeignKey(GeneratedRecipe, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10)  # user or assistant
+    content = models.TextField()
+    # True on an assistant reply that changed the recipe.
+    changed_recipe = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'recipe_messages'
+        ordering = ['id']
+
+
 # A recipe the user chose to keep, with an optional note and star rating.
 class SavedRecipe(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_recipes')

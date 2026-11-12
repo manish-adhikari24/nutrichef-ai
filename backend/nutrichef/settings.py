@@ -122,7 +122,7 @@ REST_FRAMEWORK = {
     # Per-user limits on the AI endpoints, to control cost.
     'DEFAULT_THROTTLE_RATES': {
         'generate': os.environ.get('GENERATE_RATE', '10/hour'),
-        'assistant': os.environ.get('ASSISTANT_RATE', '30/hour'),
+        'chat': os.environ.get('CHAT_RATE', '30/hour'),
     },
 }
 

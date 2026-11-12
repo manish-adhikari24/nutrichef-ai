@@ -1,6 +1,5 @@
 // Shows a full recipe: AI label, allergy check, nutrition, goal alignment, ingredients, method, swaps and supplements.
 import { Link } from 'react-router-dom';
-import RecipeAssistant from './RecipeAssistant.jsx';
 import { Check, CheckCircle, ShieldCheck, Sparkle, Timer, UsersThree, Warning, WarningCircle } from '@phosphor-icons/react';
 
 // Explains where the nutrition numbers came from.
@@ -156,9 +155,6 @@ export default function RecipeCard({ recipe, accepted = {}, onAccept, children }
           <p className="disclaimer"><Warning size={16} weight="fill" aria-hidden /> {supplements[0].disclaimer}</p>
         </section>
       )}
-
-      {/* The cooking assistant, if switched on and the recipe has been saved to the server. */}
-      {import.meta.env.VITE_RECIPE_ASSISTANT === '1' && recipe.id && <RecipeAssistant recipe={recipe} />}
 
       {/* General disclaimer, then any extra content passed in. */}
       <p className="recipe-disclaimer">

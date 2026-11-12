@@ -1,4 +1,4 @@
-# API endpoints for recipe generation, the recipe assistant, saved recipes, meal and water logs and the dashboard.
+# API endpoints for recipe generation, the recipe chat, saved recipes, meal and water logs and the dashboard.
 import itertools
 import logging
 from datetime import timedelta
@@ -13,9 +13,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import ConsumedMeal, GeneratedRecipe, SavedRecipe, WaterLog
+from .models import ConsumedMeal, GeneratedRecipe, RecipeMessage, SavedRecipe, WaterLog
 from .seed_data import SAMPLE_RECIPES
-from .services import ai, assistant
+from .services import ai, chat
 from .services.allergens import find_allergens
 from .services.nutrition import (
     assess_recipe,
@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 # Saved recipes per page.
 PAGE_SIZE = 6
+# Recipes shown in the "Recent recipes" list.
+RECENT_SIZE = 20
+# The reply while the chat feature is switched off.
+NOT_FOUND = {'error': 'We could not find that.'}
 # Rotates through the sample recipes.
 SAMPLE_CYCLE = itertools.count()
 
@@ -99,33 +103,40 @@ def blocked_response(found):
     )
 
 
-def store_recipe(user, data, recipe, source, allergies):
-    """Runs the nutrition steps and saves a recipe that has passed the allergy check."""
+def recipe_fields(recipe):
+    """Runs the nutrition steps and returns the stored fields for a recipe written by the AI."""
     # Recalculate nutrition from our dataset instead of trusting the AI's numbers.
     nutrition, nutrition_source = calculate_nutrition(recipe)
+    return {
+        'title': recipe['title'][:200],
+        'difficulty': recipe['difficulty'],
+        'cooking_time': recipe['minutes'],
+        'servings': recipe['servings'],
+        # Negative values are never stored.
+        'calories': max(nutrition['kcal'], 0),
+        'protein_g': max(nutrition['protein'], 0),
+        'carbs_g': max(nutrition['carbs'], 0),
+        'fat_g': max(nutrition['fat'], 0),
+        'nutrition_source': nutrition_source,
+        'nutrition_warning': nutrition_looks_wrong(nutrition),
+        'content': {key: recipe[key] for key in ['description', 'ingredients', 'steps', 'why_it_fits', 'label_checks', 'constraint_warning']},
+    }
+
+
+def store_recipe(user, data, recipe, source, allergies):
+    """Saves a new recipe that has passed the allergy check."""
     profile = user.profile
     return GeneratedRecipe.objects.create(
         user=user,
-        title=recipe['title'][:200],
         meal_type=data['meal'],
         cuisine_type=data['cuisine'],
-        difficulty=recipe['difficulty'],
         estimated_cost=data['budget'],
-        cooking_time=recipe['minutes'],
-        servings=recipe['servings'],
         # Stored as '' when the user has no specific diet.
         diet='' if profile.diet == 'No specific diet' else profile.diet,
-        # Negative values are never stored.
-        calories=max(nutrition['kcal'], 0),
-        protein_g=max(nutrition['protein'], 0),
-        carbs_g=max(nutrition['carbs'], 0),
-        fat_g=max(nutrition['fat'], 0),
-        nutrition_source=nutrition_source,
-        nutrition_warning=nutrition_looks_wrong(nutrition),
-        content={key: recipe[key] for key in ['description', 'ingredients', 'steps', 'why_it_fits', 'label_checks', 'constraint_warning']},
         allergies_checked=allergies,
         source=source,
         ai_model=ai.MODEL if source == 'ai' else '',
+        **recipe_fields(recipe),
     )
 
 
@@ -235,59 +246,120 @@ class SampleRecipeView(BaseGenerateView):
         return self.finish(request, data, recipe, 'sample', allergies)
 
 
-# Checks the assistant chat history sent by the browser.
-class AskRequest(serializers.Serializer):
-    class Turn(serializers.Serializer):
-        role = serializers.ChoiceField(choices=['user', 'assistant'])
-        content = serializers.CharField(max_length=2000)
-
-    # At most 12 messages, so requests stay small.
-    messages = serializers.ListField(child=Turn(), allow_empty=False, max_length=12)
-
-    def validate_messages(self, messages):
-        # The last message must be the user's question, under 500 characters.
-        if messages[-1]['role'] != 'user':
-            raise serializers.ValidationError('End with your question.')
-        if len(messages[-1]['content']) > 500:
-            raise serializers.ValidationError('Keep your question under 500 characters.')
-        # Messages must alternate: user, assistant, user...
-        if any(m['role'] == ('assistant' if i % 2 == 0 else 'user') for i, m in enumerate(messages)):
-            raise serializers.ValidationError('Questions and answers must take turns.')
-        return messages
+# A chat message as the front end shows it.
+def message_payload(message):
+    return {'id': message.id, 'role': message.role, 'content': message.content, 'changed': message.changed_recipe}
 
 
-# POST /api/recipes/<id>/ask
-class RecipeAssistantView(APIView):
-    """Answers cooking questions about one of the person's own recipes."""
+# Finds one of the signed-in user's recipes for the chat endpoints. Returns None while the feature is off.
+def chat_recipe(request, pk):
+    if not chat.enabled():
+        return None
+    recipe = get_object_or_404(GeneratedRecipe, pk=pk)
+    # Users can only open their own recipes.
+    if recipe.user_id != request.user.id:
+        raise PermissionDenied
+    return recipe
 
+
+# GET /api/recipes/recent: the user's 20 newest recipes, for the "Recent recipes" list.
+class RecentRecipesView(APIView):
+    def get(self, request):
+        # The front end uses this 404 to know the chat feature is switched off.
+        if not chat.enabled():
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        recipes = GeneratedRecipe.objects.filter(user=request.user)[:RECENT_SIZE]
+        return Response({
+            'results': [
+                {'id': r.id, 'title': r.title, 'meal': r.meal_type, 'generatedAt': r.generated_at.isoformat()}
+                for r in recipes
+            ],
+        })
+
+
+# GET or DELETE /api/recipes/<id>: reopen a recipe with its chat, or delete it.
+class RecipeDetailView(APIView):
+    def get(self, request, pk):
+        recipe = chat_recipe(request, pk)
+        if recipe is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'recipe': recipe_payload(recipe, request.user),
+            'messages': [message_payload(m) for m in recipe.messages.all()],
+            'saved': SavedRecipe.objects.filter(user=request.user, generated_recipe=recipe).exists(),
+        })
+
+    # Deleting a recipe also removes its chat and its saved copy (cascade). Logged meals are kept.
+    def delete(self, request, pk):
+        recipe = chat_recipe(request, pk)
+        if recipe is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        recipe.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# POST /api/recipes/<id>/chat: ask a question about a recipe, or ask for a change to it.
+class RecipeChatView(APIView):
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'assistant'
+    throttle_scope = 'chat'
 
-    # Pretend it doesn't exist while the feature is switched off.
     def post(self, request, pk):
-        if not assistant.enabled():
-            return Response({'error': 'We could not find that.'}, status=status.HTTP_404_NOT_FOUND)
-        # Users can only ask about their own recipes.
-        recipe = get_object_or_404(GeneratedRecipe, pk=pk)
-        if recipe.user_id != request.user.id:
-            raise PermissionDenied
-        body = AskRequest(data=request.data)
+        recipe = chat_recipe(request, pk)
+        if recipe is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+
+        class Body(serializers.Serializer):
+            message = serializers.CharField(max_length=500)
+
+        body = Body(data=request.data)
         body.is_valid(raise_exception=True)
+        text = body.validated_data['message']
 
         profile = request.user.profile
+        allergies = user_allergies(request.user)
         # Same consent rule as recipe generation: foods to avoid only go with consent.
         avoid = []
         if profile.health_consent:
-            avoid = user_allergies(request.user) + ([profile.dislikes] if profile.dislikes else [])
+            avoid = allergies + ([profile.dislikes] if profile.dislikes else [])
+        history = [{'role': m.role, 'content': m.content} for m in recipe.messages.all()]
         try:
-            answer = assistant.ask(recipe, avoid, body.validated_data['messages'])
+            answer, new_recipe = chat.reply(recipe, avoid, history, text)
         except ai.NotConfigured:
             return Response({'code': 'not_configured', 'error': "The assistant isn't connected yet."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ai.Refused:
             return Response({'error': "I can't help with that. Try a question about cooking this recipe."}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         except ai.Unavailable:
             return Response({'error': "The assistant couldn't answer right now. Try again in a moment."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response({'answer': answer})
+
+        changed = False
+        if new_recipe is not None:
+            # Allergy-check the changed recipe, with or without consent. An unsafe change is never stored.
+            try:
+                found = find_allergens([i['name'] for i in new_recipe['ingredients']], allergies)
+            except DatabaseError:
+                logger.exception('Allergy check failed')
+                found = None
+            if found is None:
+                answer = "We couldn't check that change against your allergies, so the recipe is unchanged. Try again."
+            elif found:
+                answer = f"I couldn't make that change because it would add {', '.join(found)}, which you listed as an allergy. The recipe is unchanged."
+            else:
+                changed = True
+
+        # Save the change and both messages together, or none of them.
+        with transaction.atomic():
+            if changed:
+                for field, value in recipe_fields(new_recipe).items():
+                    setattr(recipe, field, value)
+                recipe.allergies_checked = allergies
+                recipe.save()
+            asked = RecipeMessage.objects.create(recipe=recipe, role='user', content=text)
+            replied = RecipeMessage.objects.create(recipe=recipe, role='assistant', content=answer, changed_recipe=changed)
+        return Response({
+            'messages': [message_payload(asked), message_payload(replied)],
+            'changed': changed,
+            'recipe': recipe_payload(recipe, request.user),
+        })
 
 
 # A saved recipe with its note, rating and the full recipe.
