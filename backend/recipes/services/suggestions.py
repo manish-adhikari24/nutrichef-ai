@@ -1,7 +1,7 @@
 """Substitutions, supplements and wellness, all drawn from rule tables (FR-10, FR-11, FR-16)."""
 import re
 
-from recipes.models import ActivityGuidanceRule, SubstitutionRule, SupplementRule
+from recipes.models import ActivityGuidanceRule, Diet, SubstitutionRule, SupplementRule
 
 from .allergens import find_allergens
 from .nutrition import bmi_category, daily_targets, meal_targets
@@ -10,27 +10,22 @@ from .nutrition import bmi_category, daily_targets, meal_targets
 SUPPLEMENT_DISCLAIMER = 'General information only; consult a healthcare professional before using supplements.'
 WELLNESS_DISCLAIMER = 'General wellness information only, not medical or professional fitness advice.'
 
-# Words that rule out a substitute for vegan or vegetarian diets.
-VEGAN_BLOCKED = r'chicken|beef|pork|lamb|turkey|fish|salmon|tuna|prawn|egg|milk|cheese|feta|butter|yogurt|cream|honey|halloumi'
-VEGETARIAN_BLOCKED = r'chicken|beef|pork|lamb|turkey|fish|salmon|tuna|prawn|trout'
 # A last check that no rule ever suggests treating a condition or a dose (FR-11, NFR-04).
 MEDICAL_TERMS = r'\b(diabetes|cancer|disease|disorder|treat|treats|cure|cures|diagnos\w*|dose|dosage|mg|injury)\b'
 
 
-# True if a substitute suits the user's diet.
-def _fits_diet(name, diet):
+# True if a substitute suits the user's diet: it contains none of the diet's blocked words.
+def _fits_diet(name, blocked_words):
     text = name.lower()
-    if diet == 'Vegan':
-        return not re.search(VEGAN_BLOCKED, text)
-    if diet == 'Vegetarian':
-        return not re.search(VEGETARIAN_BLOCKED, text)
-    return True
+    return not any(word in text for word in blocked_words)
 
 
 # Suggests swaps for ingredients the user doesn't have (FR-10).
 def suggest_substitutions(ingredients, allergies, diet):
     # Rules in priority order (lower rank first).
     rules = list(SubstitutionRule.objects.order_by('rank', 'id'))
+    # The words the user's diet rules out, from the diets table.
+    blocked_words = Diet.objects.filter(name=diet).values_list('blocked_words', flat=True).first() or []
     suggestions = []
     # Only the ingredients marked as missing.
     for ingredient in (i for i in ingredients if i.get('missing')):
@@ -46,7 +41,7 @@ def suggest_substitutions(ingredients, allergies, diet):
             for r in matched
             if len(r.match) == longest
             and not find_allergens([r.substitute], allergies)
-            and _fits_diet(r.substitute, diet)
+            and _fits_diet(r.substitute, blocked_words)
         ]
         if options:
             suggestions.append({'ingredient': ingredient['name'], 'options': options})

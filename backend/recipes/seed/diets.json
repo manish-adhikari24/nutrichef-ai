@@ -1,0 +1,60 @@
+[
+  {
+    "name": "No specific diet",
+    "blocked_words": []
+  },
+  {
+    "name": "Vegetarian",
+    "blocked_words": [
+      "chicken",
+      "beef",
+      "pork",
+      "lamb",
+      "turkey",
+      "fish",
+      "salmon",
+      "tuna",
+      "prawn",
+      "trout"
+    ]
+  },
+  {
+    "name": "Vegan",
+    "blocked_words": [
+      "chicken",
+      "beef",
+      "pork",
+      "lamb",
+      "turkey",
+      "fish",
+      "salmon",
+      "tuna",
+      "prawn",
+      "egg",
+      "milk",
+      "cheese",
+      "feta",
+      "butter",
+      "yogurt",
+      "cream",
+      "honey",
+      "halloumi"
+    ]
+  },
+  {
+    "name": "Pescatarian",
+    "blocked_words": []
+  },
+  {
+    "name": "Halal",
+    "blocked_words": []
+  },
+  {
+    "name": "Kosher",
+    "blocked_words": []
+  },
+  {
+    "name": "Low carb",
+    "blocked_words": []
+  }
+]

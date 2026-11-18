@@ -1,21 +1,4 @@
 // Live profile feedback and display helpers. The server does recipe analysis.
-// Fitness goals: calorie adjustment per day and suggested macro split [protein, carbs, fat] %.
-export const GOALS = [
-  { value: 'weight_loss', label: 'Weight loss', adjust: -400, macros: [30, 40, 30] },
-  { value: 'maintenance', label: 'Maintenance', adjust: 0, macros: [25, 45, 30] },
-  { value: 'muscle_gain', label: 'Muscle gain', adjust: 300, macros: [30, 45, 25] },
-  { value: 'athletic_performance', label: 'Athletic performance', adjust: 200, macros: [25, 55, 20] },
-];
-
-// Activity multipliers for the calorie estimate.
-export const ACTIVITY = [
-  { value: '1.2', label: 'Mostly sitting, little exercise', level: 'low' },
-  { value: '1.375', label: 'Light exercise, 1 to 3 days a week', level: 'low' },
-  { value: '1.55', label: 'Moderate exercise, 3 to 5 days a week', level: 'moderate' },
-  { value: '1.725', label: 'Hard exercise, 6 to 7 days a week', level: 'high' },
-  { value: '1.9', label: 'Physical job plus hard training', level: 'high' },
-];
-
 // BMI = weight (kg) / height (m) squared. null until height and weight are entered.
 export function bmi(profile) {
   const height = Number(profile.heightCm) / 100;
@@ -35,7 +18,8 @@ export function bmiCategory(profile) {
 
 // Mifflin-St Jeor estimate with a minimum, used to pre-fill the targets.
 // Under-18s never get a suggested calorie deficit.
-export function suggestTargets(p) {
+// `goals` is reference.goals from the API: [{ value, label, calorieAdjust, macros: [protein, carbs, fat] }].
+export function suggestTargets(p, goals) {
   const age = Number(p.age);
   const height = Number(p.heightCm);
   const weight = Number(p.weightKg);
@@ -49,9 +33,10 @@ export function suggestTargets(p) {
   // Resting energy (Mifflin-St Jeor).
   const resting = 10 * weight + 6.25 * height - 5 * age + sexAdjust;
   const goalValue = age < 18 && p.goal === 'weight_loss' ? 'maintenance' : p.goal;
-  const goal = GOALS.find((g) => g.value === goalValue) ?? GOALS[1];
+  const goal = goals.find((g) => g.value === goalValue) ?? goals.find((g) => g.value === 'maintenance');
+  if (!goal) return null;
   // Multiply by activity, then add the goal's adjustment.
-  const raw = resting * Number(p.activity) + goal.adjust;
+  const raw = resting * Number(p.activity) + goal.calorieAdjust;
   const [proteinPct, carbsPct, fatPct] = goal.macros;
   return {
     // Round to the nearest 10, never below the minimum.

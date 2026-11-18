@@ -1,0 +1,330 @@
+[
+  {
+    "name": "chicken breast",
+    "kcal": 165,
+    "protein": 31,
+    "carbs": 0,
+    "fat": 3.6,
+    "category": "Proteins"
+  },
+  {
+    "name": "eggs",
+    "kcal": 143,
+    "protein": 12.6,
+    "carbs": 0.7,
+    "fat": 9.5,
+    "category": "Proteins"
+  },
+  {
+    "name": "salmon",
+    "kcal": 208,
+    "protein": 20,
+    "carbs": 0,
+    "fat": 13,
+    "category": "Proteins"
+  },
+  {
+    "name": "tofu",
+    "kcal": 144,
+    "protein": 15.8,
+    "carbs": 2.8,
+    "fat": 8.7,
+    "category": "Proteins"
+  },
+  {
+    "name": "beef mince",
+    "kcal": 250,
+    "protein": 26,
+    "carbs": 0,
+    "fat": 15,
+    "category": "Proteins"
+  },
+  {
+    "name": "chickpeas",
+    "kcal": 164,
+    "protein": 8.9,
+    "carbs": 27,
+    "fat": 2.6,
+    "category": "Proteins"
+  },
+  {
+    "name": "lentils",
+    "kcal": 116,
+    "protein": 9,
+    "carbs": 20,
+    "fat": 0.4,
+    "category": "Proteins"
+  },
+  {
+    "name": "broccoli",
+    "kcal": 34,
+    "protein": 2.8,
+    "carbs": 7,
+    "fat": 0.4,
+    "category": "Vegetables"
+  },
+  {
+    "name": "spinach",
+    "kcal": 23,
+    "protein": 2.9,
+    "carbs": 3.6,
+    "fat": 0.4,
+    "category": "Vegetables"
+  },
+  {
+    "name": "tomato",
+    "kcal": 18,
+    "protein": 0.9,
+    "carbs": 3.9,
+    "fat": 0.2,
+    "category": "Vegetables"
+  },
+  {
+    "name": "bell pepper",
+    "kcal": 31,
+    "protein": 1,
+    "carbs": 6,
+    "fat": 0.3,
+    "category": "Vegetables"
+  },
+  {
+    "name": "carrots",
+    "kcal": 41,
+    "protein": 0.9,
+    "carbs": 10,
+    "fat": 0.2,
+    "category": "Vegetables"
+  },
+  {
+    "name": "onion",
+    "kcal": 40,
+    "protein": 1.1,
+    "carbs": 9.3,
+    "fat": 0.1,
+    "category": "Vegetables"
+  },
+  {
+    "name": "mushrooms",
+    "kcal": 22,
+    "protein": 3.1,
+    "carbs": 3.3,
+    "fat": 0.3,
+    "category": "Vegetables"
+  },
+  {
+    "name": "garlic",
+    "kcal": 149,
+    "protein": 6.4,
+    "carbs": 33,
+    "fat": 0.5,
+    "category": "Vegetables"
+  },
+  {
+    "name": "corn",
+    "kcal": 86,
+    "protein": 3.3,
+    "carbs": 19,
+    "fat": 1.4,
+    "category": "Vegetables"
+  },
+  {
+    "name": "lemon",
+    "kcal": 29,
+    "protein": 1.1,
+    "carbs": 9.3,
+    "fat": 0.3,
+    "category": "Fruits"
+  },
+  {
+    "name": "avocado",
+    "kcal": 160,
+    "protein": 2,
+    "carbs": 8.5,
+    "fat": 14.7,
+    "category": "Fruits"
+  },
+  {
+    "name": "banana",
+    "kcal": 89,
+    "protein": 1.1,
+    "carbs": 23,
+    "fat": 0.3,
+    "category": "Fruits"
+  },
+  {
+    "name": "apple",
+    "kcal": 52,
+    "protein": 0.3,
+    "carbs": 14,
+    "fat": 0.2,
+    "category": "Fruits"
+  },
+  {
+    "name": "berries",
+    "kcal": 50,
+    "protein": 1,
+    "carbs": 12,
+    "fat": 0.4,
+    "category": "Fruits"
+  },
+  {
+    "name": "rice",
+    "kcal": 130,
+    "protein": 2.7,
+    "carbs": 28,
+    "fat": 0.3,
+    "category": "Grains"
+  },
+  {
+    "name": "pasta",
+    "kcal": 158,
+    "protein": 5.8,
+    "carbs": 31,
+    "fat": 0.9,
+    "category": "Grains"
+  },
+  {
+    "name": "oats",
+    "kcal": 389,
+    "protein": 17,
+    "carbs": 66,
+    "fat": 7,
+    "category": "Grains"
+  },
+  {
+    "name": "quinoa",
+    "kcal": 120,
+    "protein": 4.4,
+    "carbs": 21,
+    "fat": 1.9,
+    "category": "Grains"
+  },
+  {
+    "name": "bread",
+    "kcal": 265,
+    "protein": 9,
+    "carbs": 49,
+    "fat": 3.2,
+    "category": "Grains"
+  },
+  {
+    "name": "milk",
+    "kcal": 61,
+    "protein": 3.2,
+    "carbs": 4.8,
+    "fat": 3.3,
+    "category": "Dairy"
+  },
+  {
+    "name": "greek yogurt",
+    "kcal": 97,
+    "protein": 9,
+    "carbs": 3.6,
+    "fat": 5,
+    "category": "Dairy"
+  },
+  {
+    "name": "feta",
+    "kcal": 264,
+    "protein": 14,
+    "carbs": 4,
+    "fat": 21,
+    "category": "Dairy"
+  },
+  {
+    "name": "cheddar",
+    "kcal": 403,
+    "protein": 25,
+    "carbs": 1.3,
+    "fat": 33,
+    "category": "Dairy"
+  },
+  {
+    "name": "butter",
+    "kcal": 717,
+    "protein": 0.9,
+    "carbs": 0.1,
+    "fat": 81,
+    "category": "Dairy"
+  },
+  {
+    "name": "olive oil",
+    "kcal": 884,
+    "protein": 0,
+    "carbs": 0,
+    "fat": 100,
+    "category": "Pantry"
+  },
+  {
+    "name": "soy sauce",
+    "kcal": 53,
+    "protein": 8,
+    "carbs": 5,
+    "fat": 0.1,
+    "category": "Pantry"
+  },
+  {
+    "name": "canned tomatoes",
+    "kcal": 21,
+    "protein": 1,
+    "carbs": 4,
+    "fat": 0.2,
+    "category": "Pantry"
+  },
+  {
+    "name": "peanut butter",
+    "kcal": 588,
+    "protein": 25,
+    "carbs": 20,
+    "fat": 50,
+    "category": "Pantry"
+  },
+  {
+    "name": "honey",
+    "kcal": 304,
+    "protein": 0.3,
+    "carbs": 82,
+    "fat": 0,
+    "category": "Pantry"
+  },
+  {
+    "name": "parsley",
+    "kcal": 36,
+    "protein": 3,
+    "carbs": 6,
+    "fat": 0.8,
+    "category": "Herbs"
+  },
+  {
+    "name": "basil",
+    "kcal": 23,
+    "protein": 3.2,
+    "carbs": 2.7,
+    "fat": 0.6,
+    "category": "Herbs"
+  },
+  {
+    "name": "coriander",
+    "kcal": 23,
+    "protein": 2.1,
+    "carbs": 3.7,
+    "fat": 0.5,
+    "category": "Herbs"
+  },
+  {
+    "name": "oregano",
+    "kcal": 265,
+    "protein": 9,
+    "carbs": 69,
+    "fat": 4.3,
+    "category": "Herbs"
+  },
+  {
+    "name": "mint",
+    "kcal": 70,
+    "protein": 3.8,
+    "carbs": 15,
+    "fat": 0.9,
+    "category": "Herbs"
+  }
+]

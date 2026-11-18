@@ -4,6 +4,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Every seeded list the website needs (allergens, ingredients, form choices).
+    path('reference', views.ReferenceView.as_view()),
     # Ask the AI for a new recipe (rate limited).
     path('recipes/generate', views.GenerateRecipeView.as_view()),
     # A clearly labelled example recipe for when the AI is unavailable.

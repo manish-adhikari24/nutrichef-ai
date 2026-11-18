@@ -8,3 +8,5 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 # Bring the Neon database tables up to date with the models.
 python manage.py migrate --no-input
+# Load the reference data from recipes/seed/*.json (replaces it, so edits to the files go live).
+python manage.py seed

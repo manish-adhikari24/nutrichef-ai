@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Check, Plus, X } from '@phosphor-icons/react';
-import { ALLERGENS } from '../../lib/allergens.js';
 import { saveProfile } from '../../lib/api.js';
 
 export default function AllergyProfile() {
-  const { profile, setProfile } = useOutletContext();
+  // reference.allergens is the seeded allergen list from the database.
+  const { profile, setProfile, reference } = useOutletContext();
   // The custom allergy being typed, its error, and the save message.
   const [typed, setTyped] = useState('');
   const [error, setError] = useState('');
@@ -60,7 +60,7 @@ export default function AllergyProfile() {
       <section aria-labelledby="common-title" className="profile-section">
         <h2 id="common-title" className="dash-h2">Common allergens</h2>
         <div className="chip-list" role="group" aria-labelledby="common-title">
-          {ALLERGENS.map((allergen) => {
+          {reference.allergens.map(({ name: allergen }) => {
             const on = profile.allergies.includes(allergen);
             return (
               <button key={allergen} type="button" className={`chip chip-btn${on ? ' chip-on' : ''}`} aria-pressed={on} onClick={() => toggle(allergen)}>

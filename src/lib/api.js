@@ -192,6 +192,9 @@ export const EMPTY_HEALTH = {
 // Read and save the profile (FR-03). Blank number fields are sent as null.
 export const getProfile = () => request('profile');
 
+// Every seeded list (allergens, ingredients, goals, diets, form choices) from the database.
+export const getReference = () => request('reference', { auth: false });
+
 export function saveProfile(profile) {
   const blankToNull = (value) => (value === '' ? null : value);
   return request('profile', {

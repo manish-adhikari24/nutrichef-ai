@@ -21,8 +21,17 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt
 cp .env.example .env
 .venv/Scripts/python manage.py migrate
+.venv/Scripts/python manage.py seed
 .venv/Scripts/python manage.py runserver 8000
 ```
+
+### Seed data
+
+All reference data lives in JSON files in `backend/recipes/seed/`, not in the code: nutrition values, ingredient categories and aliases, allergens with their aliases and safe phrases, substitution, supplement and wellness rules, sample recipes, and every form choice (fitness goals, activity levels, diets, meal types, sexes, cuisines, difficulties, budgets and prep times).
+
+`python manage.py seed` loads them into the database. It replaces the reference tables each time, so to change the data, edit a file and run it again. User data is never touched. Render runs it on every deploy, and the tests run it on the test database.
+
+The server validates forms against these tables, and the website loads them from `GET /api/reference`, so the data exists in one place only.
 
 Run the tests with `.venv/Scripts/python manage.py test`. Add `ANTHROPIC_API_KEY` to `backend/.env` to generate real AI recipes.
 
@@ -49,7 +58,7 @@ Colors, fonts and spacing live in `src/styles/tokens.css`. See `BRAND.md` for th
 
 ## Before launch
 
-- Check the approximate nutrition values in `backend/recipes/seed_data.py` against a published database. Allergen aliases also live in `src/lib/allergens.js` for instant warnings, so keep the two in step. The server's check is the one that counts.
+- Check the approximate nutrition values in `backend/recipes/seed/nutrition.json` against a published database, then run `python manage.py seed`.
 - Have a lawyer review `src/data/terms.js`, fill in its bracketed details, and publish a Privacy Policy.
 - Rate limits use each server's memory, so use a shared cache if you run more than one.
 - Photos in `public/images/` are free Unsplash placeholders. Swap in your own when ready.

@@ -473,3 +473,51 @@ class ChatTests(Base):
             self.assertEqual(self.client.get('/api/recipes/recent').status_code, 404)
             self.assertEqual(self.client.get(f'/api/recipes/{recipe.id}').status_code, 404)
             self.assertEqual(self.client.delete(f'/api/recipes/{recipe.id}').status_code, 404)
+
+
+# Reference data: loaded from recipes/seed/*.json, served to the website, and used for validation.
+class ReferenceDataTests(Base):
+    # Seeding twice gives the same data, and only reference tables are touched.
+    def test_seed_is_repeatable_and_keeps_user_data(self):
+        from recipes.seeding import load_seed
+
+        first = load_seed()
+        self.assertEqual(load_seed(), first)
+        self.assertEqual(first['allergens'], 11)
+        self.assertTrue(User.objects.filter(email='test@example.test').exists())
+        self.assertEqual(self.client.get('/api/profile').data['allergies'], ['Soy'])
+
+    # The website gets every list from /api/reference, without signing in.
+    def test_reference_endpoint(self):
+        self.client.credentials()
+        data = self.client.get('/api/reference').data
+        milk = next(a for a in data['allergens'] if a['name'] == 'Milk')
+        self.assertIn('cheese', milk['aliases'])
+        self.assertIn('coconut milk', milk['exceptions'])
+        proteins = next(c for c in data['ingredientCategories'] if c['name'] == 'Proteins')
+        self.assertEqual(proteins['ingredients'][0], 'Chicken breast')
+        self.assertEqual(data['ingredientAliases']['capsicum'], 'bell pepper')
+        self.assertIn('Vegan', data['diets'])
+        self.assertEqual(data['mealTypes'], ['Breakfast', 'Lunch', 'Dinner', 'Snack'])
+        self.assertEqual(data['goals'][0]['macros'], [30, 40, 30])
+        self.assertIn({'value': '30', 'label': 'Under 30 min'}, data['prepTimes'])
+
+    # Validation follows the database: a choice added to the data is accepted, a removed one is refused.
+    def test_choices_follow_the_database(self):
+        from recipes.models import ChoiceOption, Diet
+
+        body = {'ingredients': ['Eggs'], 'cuisine': 'Indian'}
+        self.assertEqual(self.client.post('/api/recipes/sample', body, format='json').status_code, 400)
+        ChoiceOption.objects.create(group='cuisine', value='Indian', label='Indian')
+        self.assertEqual(self.client.post('/api/recipes/sample', body, format='json').status_code, 201)
+        self.assertEqual(self.client.post('/api/recipes/sample', {'ingredients': ['Eggs'], 'minutes': 45}, format='json').status_code, 400)
+        Diet.objects.filter(name='Halal').delete()
+        self.assertEqual(self.client.put('/api/profile', {**PROFILE, 'diet': 'Halal'}, format='json').status_code, 400)
+
+    # Swaps for a vegan user skip substitutes containing the diet's blocked words.
+    def test_diet_words_come_from_the_database(self):
+        from recipes.services.suggestions import suggest_substitutions
+
+        options = lambda diet: [o['name'] for s in suggest_substitutions([{'name': 'Feta', 'missing': True}], [], diet) for o in s['options']]
+        self.assertEqual(options('No specific diet'), ['Firm tofu', 'Halloumi'])
+        self.assertEqual(options('Vegan'), ['Firm tofu'])

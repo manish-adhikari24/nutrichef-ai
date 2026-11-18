@@ -60,6 +60,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'nutrichef.urls'
 WSGI_APPLICATION = 'nutrichef.wsgi.application'
+# Tests load the seed data into the test database first.
+TEST_RUNNER = 'nutrichef.test_runner.SeededTestRunner'
 # Use our email-based User model instead of Django's default.
 AUTH_USER_MODEL = 'accounts.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,50 @@
+[
+  {
+    "goal": "",
+    "bmi_category": "underweight",
+    "calories_remaining": false,
+    "priority": 1,
+    "title": "Keep energy steady",
+    "text": "Regular meals and gentle movement you enjoy, such as walking or stretching, can be a good fit. A health professional can give you advice for your situation."
+  },
+  {
+    "goal": "weight_loss",
+    "bmi_category": "",
+    "calories_remaining": true,
+    "priority": 5,
+    "title": "A walk after dinner",
+    "text": "A relaxed 20 to 30 minute walk is an easy way to add some movement to your day."
+  },
+  {
+    "goal": "weight_loss",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "priority": 6,
+    "title": "Small, regular movement",
+    "text": "Short walks spread through the day can add up. Choose a pace where you can still hold a conversation."
+  },
+  {
+    "goal": "muscle_gain",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "priority": 5,
+    "title": "Plan your strength sessions",
+    "text": "Two or three strength sessions a week with rest days between them is a common starting point."
+  },
+  {
+    "goal": "athletic_performance",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "priority": 5,
+    "title": "Fuel around training",
+    "text": "Having a meal with carbs and protein within a few hours of training is a common habit among active people."
+  },
+  {
+    "goal": "maintenance",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "priority": 5,
+    "title": "Stay active most days",
+    "text": "Aim for regular movement you enjoy, such as walking, cycling or swimming."
+  }
+]

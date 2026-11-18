@@ -4,7 +4,19 @@ from django.db import models
 from django.utils import timezone
 
 
-# Reference data (seeded by a migration): nutrition per 100 g of each ingredient.
+# ---------- Reference data, loaded from recipes/seed/*.json by `python manage.py seed` ----------
+
+# Groups for the ingredient suggestion chips on the Generate page, e.g. Proteins, Vegetables.
+class IngredientCategory(models.Model):
+    name = models.CharField(max_length=40, unique=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'ingredient_categories'
+        ordering = ['sort_order', 'id']
+
+
+# Nutrition per 100 g of each ingredient. Items with a category are offered as suggestion chips.
 class NutritionItem(models.Model):
     """Values per 100 g."""
 
@@ -13,9 +25,22 @@ class NutritionItem(models.Model):
     protein = models.FloatField()
     carbs = models.FloatField()
     fat = models.FloatField()
+    category = models.ForeignKey(IngredientCategory, null=True, blank=True, on_delete=models.SET_NULL, related_name='items')
+    sort_order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         db_table = 'nutrition_dataset'
+        ordering = ['sort_order', 'id']
+
+
+# The allergies a user can pick on the Allergy Profile page.
+class Allergen(models.Model):
+    name = models.CharField(max_length=40, unique=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'allergens'
+        ordering = ['sort_order', 'id']
 
 
 # Other names for the same ingredient, e.g. "spring onion" -> "green onion".
@@ -85,6 +110,82 @@ class ActivityGuidanceRule(models.Model):
         db_table = 'activity_guidance_rules'
         ordering = ['priority', 'id']
 
+
+# Labelled example recipes, used when the AI isn't available (risk R01). `recipe` holds the whole recipe.
+class SampleRecipe(models.Model):
+    title = models.CharField(max_length=200, unique=True)
+    recipe = models.JSONField()
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'sample_recipes'
+        ordering = ['sort_order', 'id']
+
+
+# ---------- Form choices, also seeded ----------
+
+# Diets for the profile. A substitute containing one of `blocked_words` is never suggested for that diet.
+class Diet(models.Model):
+    name = models.CharField(max_length=24, unique=True)
+    blocked_words = models.JSONField(default=list)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'diets'
+        ordering = ['sort_order', 'id']
+
+
+# Fitness goals, with the daily calorie adjustment and macro split used for suggested targets.
+class FitnessGoal(models.Model):
+    value = models.CharField(max_length=24, unique=True)
+    label = models.CharField(max_length=40)
+    calorie_adjust = models.SmallIntegerField(default=0)
+    protein_pct = models.PositiveSmallIntegerField()
+    carbs_pct = models.PositiveSmallIntegerField()
+    fat_pct = models.PositiveSmallIntegerField()
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'fitness_goals'
+        ordering = ['sort_order', 'id']
+
+
+# Activity levels. `value` is the multiplier used in the calorie estimate, e.g. "1.375".
+class ActivityLevel(models.Model):
+    value = models.CharField(max_length=5, unique=True)
+    label = models.CharField(max_length=60)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'activity_levels'
+        ordering = ['sort_order', 'id']
+
+
+# Meal types, with each meal's share of the daily calories.
+class MealType(models.Model):
+    name = models.CharField(max_length=16, unique=True)
+    calorie_share = models.FloatField()
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'meal_types'
+        ordering = ['sort_order', 'id']
+
+
+# Simple drop-down choices, grouped: sex, cuisine, difficulty, budget and prep_time.
+class ChoiceOption(models.Model):
+    group = models.CharField(max_length=20)
+    value = models.CharField(max_length=40)
+    label = models.CharField(max_length=60)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'choice_options'
+        ordering = ['group', 'sort_order', 'id']
+        constraints = [models.UniqueConstraint(fields=['group', 'value'], name='unique_choice_per_group')]
+
+
+# ---------- User data ----------
 
 # Every recipe the AI (or the sample) produced for a user, with its nutrition and allergy check.
 class GeneratedRecipe(models.Model):

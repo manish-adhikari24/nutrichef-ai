@@ -1,0 +1,92 @@
+{
+  "sex": [
+    {
+      "value": "female",
+      "label": "Female"
+    },
+    {
+      "value": "male",
+      "label": "Male"
+    },
+    {
+      "value": "other",
+      "label": "Prefer not to say"
+    }
+  ],
+  "cuisine": [
+    {
+      "value": "Any",
+      "label": "Any"
+    },
+    {
+      "value": "Asian",
+      "label": "Asian"
+    },
+    {
+      "value": "Mediterranean",
+      "label": "Mediterranean"
+    },
+    {
+      "value": "Mexican",
+      "label": "Mexican"
+    },
+    {
+      "value": "Western",
+      "label": "Western"
+    }
+  ],
+  "difficulty": [
+    {
+      "value": "Any",
+      "label": "Any"
+    },
+    {
+      "value": "Easy",
+      "label": "Easy"
+    },
+    {
+      "value": "Medium",
+      "label": "Medium"
+    },
+    {
+      "value": "Hard",
+      "label": "Hard"
+    }
+  ],
+  "budget": [
+    {
+      "value": "Any",
+      "label": "Any"
+    },
+    {
+      "value": "Low",
+      "label": "Low"
+    },
+    {
+      "value": "Medium",
+      "label": "Medium"
+    },
+    {
+      "value": "High",
+      "label": "High"
+    }
+  ],
+  "prep_time": [
+    {
+      "value": "any",
+      "label": "Any"
+    },
+    {
+      "value": "15",
+      "label": "Under 15 min"
+    },
+    {
+      "value": "30",
+      "label": "Under 30 min"
+    },
+    {
+      "value": "60",
+      "label": "Under 1 hour"
+    }
+  ]
+}

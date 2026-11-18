@@ -2,11 +2,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { allAllergies, EMPTY_HEALTH, saveProfile } from '../../lib/api.js';
-import { ACTIVITY, bmi, bmiCategory, GOALS, suggestTargets } from '../../lib/nutrition.js';
+import { bmi, bmiCategory, suggestTargets } from '../../lib/nutrition.js';
 
-// Diet choices (they match the server's list).
-const DIETS = ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Low carb'];
-// The three macro sliders.
 const MACROS = [
   { key: 'proteinPct', label: 'Protein' },
   { key: 'carbsPct', label: 'Carbs' },
@@ -41,7 +38,8 @@ function validate(p) {
 }
 
 export default function Profile() {
-  const { profile, setProfile } = useOutletContext();
+  // reference holds the seeded goals, activity levels, diets and sexes from the database.
+  const { profile, setProfile, reference } = useOutletContext();
   const { state } = useLocation();
   const navigate = useNavigate();
   // The form starts as a copy of the saved profile.
@@ -63,7 +61,7 @@ export default function Profile() {
   });
 
   // Values worked out live as the user types.
-  const suggested = suggestTargets(form);
+  const suggested = suggestTargets(form, reference.goals);
   const macroTotal = form.proteinPct + form.carbsPct + form.fatPct;
   const allergies = allAllergies(form);
   const under18 = Number(form.age) > 0 && Number(form.age) < 18;
@@ -148,9 +146,7 @@ export default function Profile() {
             <Field id="p-sex" label="Sex" hint="Used only in the calorie estimate.">
               <select id="p-sex" {...bind('sex')}>
                 <option value="">Select</option>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="other">Prefer not to say</option>
+                {reference.sexes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
             <Field id="p-heightCm" label="Height (cm)" error={errors.heightCm}>
@@ -161,12 +157,12 @@ export default function Profile() {
             </Field>
             <Field id="p-activity" label="Activity level">
               <select id="p-activity" {...bind('activity')}>
-                {ACTIVITY.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                {reference.activityLevels.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
             </Field>
             <Field id="p-goal" label="Fitness goal">
               <select id="p-goal" {...bind('goal')}>
-                {GOALS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                {reference.goals.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
               </select>
             </Field>
           </div>
@@ -229,7 +225,7 @@ export default function Profile() {
           <h2 id="p-food" className="dash-h2">Food preferences</h2>
           <Field id="p-diet" label="Dietary preference">
             <select id="p-diet" {...bind('diet')}>
-              {DIETS.map((d) => <option key={d}>{d}</option>)}
+              {reference.diets.map((d) => <option key={d}>{d}</option>)}
             </select>
           </Field>
           <Field id="p-dislikes" label="Foods you dislike">

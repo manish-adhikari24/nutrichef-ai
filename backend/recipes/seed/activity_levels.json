@@ -1,0 +1,22 @@
+[
+  {
+    "value": "1.2",
+    "label": "Mostly sitting, little exercise"
+  },
+  {
+    "value": "1.375",
+    "label": "Light exercise, 1 to 3 days a week"
+  },
+  {
+    "value": "1.55",
+    "label": "Moderate exercise, 3 to 5 days a week"
+  },
+  {
+    "value": "1.725",
+    "label": "Hard exercise, 6 to 7 days a week"
+  },
+  {
+    "value": "1.9",
+    "label": "Physical job plus hard training"
+  }
+]

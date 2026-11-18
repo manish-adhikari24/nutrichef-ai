@@ -1,0 +1,182 @@
+[
+  {
+    "match": "buttermilk",
+    "substitute": "Milk with a little lemon juice",
+    "reason": "pantry swap"
+  },
+  {
+    "match": "buttermilk",
+    "substitute": "Oat milk with lemon juice",
+    "reason": "dairy-free"
+  },
+  {
+    "match": "milk",
+    "substitute": "Oat milk",
+    "reason": "dairy-free"
+  },
+  {
+    "match": "milk",
+    "substitute": "Soy milk",
+    "reason": "vegan"
+  },
+  {
+    "match": "butter",
+    "substitute": "Olive oil",
+    "reason": "dairy-free"
+  },
+  {
+    "match": "butter",
+    "substitute": "Coconut oil",
+    "reason": "vegan"
+  },
+  {
+    "match": "cream",
+    "substitute": "Coconut cream",
+    "reason": "dairy-free"
+  },
+  {
+    "match": "cream",
+    "substitute": "Greek yogurt",
+    "reason": "lighter"
+  },
+  {
+    "match": "yogurt",
+    "substitute": "Coconut yogurt",
+    "reason": "dairy-free"
+  },
+  {
+    "match": "yogurt",
+    "substitute": "Soy yogurt",
+    "reason": "vegan"
+  },
+  {
+    "match": "feta",
+    "substitute": "Firm tofu",
+    "reason": "vegan"
+  },
+  {
+    "match": "feta",
+    "substitute": "Halloumi",
+    "reason": "budget-friendly"
+  },
+  {
+    "match": "cheese",
+    "substitute": "Nutritional yeast",
+    "reason": "vegan"
+  },
+  {
+    "match": "egg",
+    "substitute": "Chia seeds with water",
+    "reason": "vegan"
+  },
+  {
+    "match": "egg",
+    "substitute": "Mashed banana",
+    "reason": "for baking"
+  },
+  {
+    "match": "chicken",
+    "substitute": "Firm tofu",
+    "reason": "vegan"
+  },
+  {
+    "match": "chicken",
+    "substitute": "Chickpeas",
+    "reason": "budget-friendly"
+  },
+  {
+    "match": "beef",
+    "substitute": "Lentils",
+    "reason": "vegan"
+  },
+  {
+    "match": "beef",
+    "substitute": "Mushrooms",
+    "reason": "vegan"
+  },
+  {
+    "match": "salmon",
+    "substitute": "Firm tofu",
+    "reason": "vegan"
+  },
+  {
+    "match": "salmon",
+    "substitute": "Trout",
+    "reason": "similar taste"
+  },
+  {
+    "match": "soy sauce",
+    "substitute": "Coconut aminos",
+    "reason": "soy-free"
+  },
+  {
+    "match": "soy sauce",
+    "substitute": "Tamari",
+    "reason": "gluten-free"
+  },
+  {
+    "match": "pasta",
+    "substitute": "Rice noodles",
+    "reason": "gluten-free"
+  },
+  {
+    "match": "pasta",
+    "substitute": "Zucchini noodles",
+    "reason": "lighter"
+  },
+  {
+    "match": "rice",
+    "substitute": "Quinoa",
+    "reason": "higher protein"
+  },
+  {
+    "match": "rice",
+    "substitute": "Cauliflower rice",
+    "reason": "lighter"
+  },
+  {
+    "match": "lemon",
+    "substitute": "White wine vinegar",
+    "reason": "pantry swap"
+  },
+  {
+    "match": "lemon",
+    "substitute": "Lime",
+    "reason": "similar taste"
+  },
+  {
+    "match": "parsley",
+    "substitute": "Coriander",
+    "reason": "similar use"
+  },
+  {
+    "match": "parsley",
+    "substitute": "Basil",
+    "reason": "similar use"
+  },
+  {
+    "match": "broccoli",
+    "substitute": "Cauliflower",
+    "reason": "similar texture"
+  },
+  {
+    "match": "broccoli",
+    "substitute": "Green beans",
+    "reason": "budget-friendly"
+  },
+  {
+    "match": "peanut",
+    "substitute": "Sunflower seed butter",
+    "reason": "nut-free"
+  },
+  {
+    "match": "almond",
+    "substitute": "Pumpkin seeds",
+    "reason": "nut-free"
+  },
+  {
+    "match": "paprika",
+    "substitute": "Ground cumin",
+    "reason": "pantry swap"
+  }
+]

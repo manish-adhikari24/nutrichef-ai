@@ -1,10 +1,8 @@
 """Ingredient clean-up, nutrition calculation and goal alignment (FR-04, FR-07, FR-08)."""
 import re
 
-from recipes.models import IngredientAlias, NutritionItem
+from recipes.models import IngredientAlias, MealType, NutritionItem
 
-# Share of the daily calories for each meal type.
-MEAL_SHARE = {'Breakfast': 0.25, 'Lunch': 0.3, 'Dinner': 0.35, 'Snack': 0.1}
 # Calories within 10% count as on target. Each macro may be up to 8 percentage points off.
 CALORIE_TOLERANCE = 0.1
 MACRO_TOLERANCE_POINTS = 8
@@ -99,7 +97,11 @@ def meal_targets(profile, meal):
     daily = daily_targets(profile)
     if not daily:
         return None
-    share = MEAL_SHARE.get(meal, MEAL_SHARE['Dinner'])
+    # Each meal's share of the day comes from the meal_types table.
+    shares = dict(MealType.objects.values_list('name', 'calorie_share'))
+    share = shares.get(meal, shares.get('Dinner'))
+    if share is None:
+        return None
     return {key: round(value * share) for key, value in daily.items()}
 
 

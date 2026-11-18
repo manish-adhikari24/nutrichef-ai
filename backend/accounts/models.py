@@ -42,12 +42,8 @@ class User(AbstractUser):
 class UserProfile(models.Model):
     """Meal personalisation data only. It has no field for medical diagnoses (NFR-04)."""
 
-    # Allowed values, checked by the profile serializer.
-    GOALS = ['weight_loss', 'maintenance', 'muscle_gain', 'athletic_performance']
-    SEXES = ['female', 'male', 'other']
-    # Activity multipliers, from sedentary (1.2) to very active (1.9).
-    ACTIVITY = ['1.2', '1.375', '1.55', '1.725', '1.9']
-    DIETS = ['No specific diet', 'Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Low carb']
+    # The allowed goals, activity levels, diets and sexes are seeded tables (see recipes/seed/),
+    # checked by the profile serializer. The defaults below must exist in that data.
 
     # One profile per user. Deleting the user deletes the profile too.
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

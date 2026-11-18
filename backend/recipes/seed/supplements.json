@@ -1,0 +1,17 @@
+[
+  {
+    "trigger": "protein_short",
+    "title": "Protein",
+    "text": "This meal is lower in protein than your target. Some people use a protein powder to help close a gap like this, though food sources also work well."
+  },
+  {
+    "trigger": "training_goal",
+    "title": "Recovery",
+    "text": "People training regularly sometimes look at creatine or electrolyte products. Whether these suit you depends on your circumstances."
+  },
+  {
+    "trigger": "vegan_diet",
+    "title": "Vitamin B12",
+    "text": "Vegan diets contain little vitamin B12, so many people on them look at fortified foods or a supplement."
+  }
+]

@@ -17,7 +17,7 @@ import {
 } from '@phosphor-icons/react';
 import Logo from './Logo.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-import { getProfile, isSignedIn, logout } from '../lib/api.js';
+import { getProfile, getReference, isSignedIn, logout } from '../lib/api.js';
 import { useLoad } from '../lib/useLoad.js';
 import LoadStatus from './LoadStatus.jsx';
 
@@ -54,6 +54,8 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   // Load the profile once, if signed in. Every dashboard page gets it from here.
   const { data: profile, setData: setProfile, error, loading, reload } = useLoad(() => (isSignedIn() ? getProfile() : null));
+  // The seeded lists (allergens, ingredients, goals, diets, form choices), loaded once from the database.
+  const ref = useLoad(getReference);
   // Kept here so the latest recipe is still there after visiting another page.
   const [currentRecipe, setCurrentRecipe] = useState(null);
 
@@ -107,10 +109,14 @@ export default function DashboardLayout() {
 
       {/* The page's content. Shared data is passed to it through the Outlet context. */}
       <main id="main" className="dash-main" tabIndex={-1}>
-        {profile ? (
-          <Outlet context={{ profile, setProfile, currentRecipe, setCurrentRecipe }} />
+        {profile && ref.data ? (
+          <Outlet context={{ profile, setProfile, reference: ref.data, currentRecipe, setCurrentRecipe }} />
         ) : (
-          <LoadStatus loading={loading} error={error} onRetry={reload} />
+          <LoadStatus
+            loading={loading || ref.loading}
+            error={error ?? ref.error}
+            onRetry={() => { if (error) reload(); if (ref.error) ref.reload(); }}
+          />
         )}
       </main>
     </div>

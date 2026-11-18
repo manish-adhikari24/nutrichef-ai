@@ -3,9 +3,6 @@ import re
 
 from recipes.models import AllergenAlias, AllergenException
 
-# The allergies a user can tick on the Allergy Profile page.
-COMMON_ALLERGENS = ['Peanuts', 'Tree nuts', 'Milk', 'Eggs', 'Wheat', 'Gluten', 'Soy', 'Fish', 'Shellfish', 'Sesame', 'Lupin']
-
 
 # True if any allergen word appears in the ingredient name as a whole word (plural "s"/"es" allowed).
 def _matches(name, words, exceptions):

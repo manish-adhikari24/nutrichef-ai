@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from recipes.services.allergens import COMMON_ALLERGENS
+from recipes.reference import DbChoiceField, activity_levels, allergen_names, choices, diets, goals
 
 from .models import User, UserAllergy, UserProfile
 
@@ -76,18 +76,18 @@ class ProfileSerializer(serializers.Serializer):
     firstName = serializers.CharField(max_length=150)
     lastName = serializers.CharField(max_length=150)
     age = serializers.IntegerField(min_value=13, max_value=120, allow_null=True, required=False)
-    sex = serializers.ChoiceField(choices=[''] + UserProfile.SEXES, allow_blank=True, required=False)
+    sex = DbChoiceField(lambda: choices('sex'), allow_blank=True, required=False)
     heightCm = serializers.DecimalField(max_digits=5, decimal_places=1, min_value=100, max_value=250, allow_null=True, required=False)
     weightKg = serializers.DecimalField(max_digits=5, decimal_places=1, min_value=25, max_value=350, allow_null=True, required=False)
-    activity = serializers.ChoiceField(choices=UserProfile.ACTIVITY)
-    goal = serializers.ChoiceField(choices=UserProfile.GOALS)
+    activity = DbChoiceField(activity_levels)
+    goal = DbChoiceField(goals)
     calorieTarget = serializers.IntegerField(min_value=1000, max_value=6000, allow_null=True, required=False)
     proteinPct = serializers.IntegerField(min_value=0, max_value=100)
     carbsPct = serializers.IntegerField(min_value=0, max_value=100)
     fatPct = serializers.IntegerField(min_value=0, max_value=100)
-    diet = serializers.ChoiceField(choices=UserProfile.DIETS)
+    diet = DbChoiceField(diets)
     # Common allergies must come from the fixed list. Custom ones go in otherAllergies.
-    allergies = serializers.ListField(child=serializers.ChoiceField(choices=COMMON_ALLERGENS), max_length=20)
+    allergies = serializers.ListField(child=DbChoiceField(allergen_names), max_length=20)
     otherAllergies = serializers.CharField(max_length=500, allow_blank=True, required=False)
     dislikes = serializers.CharField(max_length=300, allow_blank=True, required=False)
     healthConsent = serializers.BooleanField()

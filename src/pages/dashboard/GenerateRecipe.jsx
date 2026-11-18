@@ -8,33 +8,34 @@ import RecipeCard from '../../components/RecipeCard.jsx';
 import RecipeChat from '../../components/RecipeChat.jsx';
 import { allAllergies, deleteRecipe, generateRecipe, getRecipeChat, listRecent, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
 import { findAllergens } from '../../lib/allergens.js';
-import { CATEGORIES, normalizeList } from '../../lib/ingredients.js';
+import { normalizeList } from '../../lib/ingredients.js';
 import { dailyTargets } from '../../lib/nutrition.js';
 
-// The filter drop-downs (FR-09).
-const FILTERS = [
-  { key: 'meal', label: 'Meal type', options: ['Breakfast', 'Lunch', 'Dinner', 'Snack'] },
-  { key: 'cuisine', label: 'Cuisine style', options: ['Any', 'Asian', 'Mediterranean', 'Mexican', 'Western'] },
-  { key: 'time', label: 'Prep time', options: ['Any', 'Under 15 min', 'Under 30 min', 'Under 1 hour'] },
-  { key: 'difficulty', label: 'Difficulty', options: ['Any', 'Easy', 'Medium', 'Hard'] },
-  { key: 'budget', label: 'Budget', options: ['Any', 'Low', 'Medium', 'High'] },
-];
-// Turns the prep time choice into minutes for the API.
-const MINUTES = { 'Under 15 min': 15, 'Under 30 min': 30, 'Under 1 hour': 60 };
-// Category tabs for the ingredient suggestions.
-const CATEGORY_NAMES = ['All', ...Object.keys(CATEGORIES)];
-const allChips = Object.values(CATEGORIES).flat();
+// The filter drop-downs (FR-09). Their options are the seeded choices from the database.
+// Each option is { value, label }. Meal types are plain names, so they're turned into the same shape.
+function filterList(reference) {
+  const named = (names) => names.map((name) => ({ value: name, label: name }));
+  return [
+    { key: 'meal', label: 'Meal type', options: named(reference.mealTypes) },
+    { key: 'cuisine', label: 'Cuisine style', options: reference.cuisines },
+    { key: 'time', label: 'Prep time', options: reference.prepTimes },
+    { key: 'difficulty', label: 'Difficulty', options: reference.difficulties },
+    { key: 'budget', label: 'Budget', options: reference.budgets },
+  ];
+}
 // Errors where a sample recipe should be offered instead.
 const OFFER_SAMPLE = ['not_configured', 'ai_unavailable'];
 
 export default function GenerateRecipe() {
   // currentRecipe lives in DashboardLayout, so it's kept when moving between pages.
-  const { profile, currentRecipe, setCurrentRecipe } = useOutletContext();
+  // reference holds the seeded lists from the database (allergens, ingredients, filter choices).
+  const { profile, reference, currentRecipe, setCurrentRecipe } = useOutletContext();
   // Ingredient input and the list typed or picked so far.
   const [typed, setTyped] = useState('');
   const [rawIngredients, setRawIngredients] = useState([]);
   const [category, setCategory] = useState('All');
-  const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: 'Under 30 min', difficulty: 'Any', budget: 'Any' });
+  // Filter values. Prep time stores the minutes as text ('30'), or 'any'.
+  const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: '30', difficulty: 'Any', budget: 'Any' });
   // Optional calorie target per serving.
   const [useCalories, setUseCalories] = useState(false);
   const [calories, setCalories] = useState(500);
@@ -64,14 +65,22 @@ export default function GenerateRecipe() {
   // Allergies, consent and cleaned-up ingredient names, worked out from the profile and the list.
   const allergies = allAllergies(profile);
   const consent = profile.healthConsent;
-  const ingredients = normalizeList(rawIngredients);
+  const ingredients = normalizeList(rawIngredients, reference);
   const names = ingredients.map((i) => i.name);
   // An instant warning while typing. The server's check decides what's blocked.
-  const conflicts = findAllergens(names, allergies);
+  const conflicts = findAllergens(names, allergies, reference.allergens);
   // Suggestion chips for the selected category.
-  const chips = category === 'All' ? allChips : CATEGORIES[category];
+  const categories = reference.ingredientCategories;
+  const chips = category === 'All'
+    ? categories.flatMap((c) => c.ingredients)
+    : categories.find((c) => c.name === category)?.ingredients ?? [];
+  const filterFields = filterList(reference);
   // Filters that aren't "Any", shown as badges.
-  const activeBadges = Object.entries(filters).filter(([, value]) => value !== 'Any').map(([, value]) => value);
+  // Badges for the chosen filters, using each option's label and skipping "Any".
+  const activeBadges = filterFields
+    .map(({ key, options }) => options.find((o) => o.value === filters[key]))
+    .filter((o) => o && o.label !== 'Any')
+    .map((o) => o.label);
   if (useCalories) activeBadges.push(`About ${calories} kcal`);
 
   // Add one ingredient from a suggestion chip.
@@ -107,7 +116,7 @@ export default function GenerateRecipe() {
       cuisine: filters.cuisine,
       difficulty: filters.difficulty,
       budget: filters.budget,
-      minutes: MINUTES[filters.time] ?? null,
+      minutes: /^\d+$/.test(filters.time) ? Number(filters.time) : null,
       calories: useCalories ? calories : null,
       servings,
       notes,
@@ -298,7 +307,7 @@ export default function GenerateRecipe() {
           </form>
 
           <div className="chip-list category-chips" role="group" aria-label="Filter suggestions by category">
-            {CATEGORY_NAMES.map((name) => (
+            {['All', ...categories.map((c) => c.name)].map((name) => (
               <button key={name} type="button" className={`chip chip-btn${category === name ? ' chip-on' : ''}`} aria-pressed={category === name} onClick={() => setCategory(name)}>
                 {name}
               </button>
@@ -322,7 +331,7 @@ export default function GenerateRecipe() {
           ) : (
             <ul className="added-list">
               {ingredients.map((i) => {
-                const bad = findAllergens([i.name], allergies);
+                const bad = findAllergens([i.name], allergies, reference.allergens);
                 return (
                   <li key={i.name} className={bad.length ? 'is-conflict' : undefined}>
                     <span>
@@ -348,11 +357,11 @@ export default function GenerateRecipe() {
         <section aria-labelledby="filter-title" className="generate-panel">
           <h2 id="filter-title" className="dash-h2">Recipe filters</h2>
           <div className="filter-grid">
-            {FILTERS.map(({ key, label, options }) => (
+            {filterFields.map(({ key, label, options }) => (
               <div key={key} className="field">
                 <label htmlFor={`f-${key}`} className="field-label">{label}</label>
                 <select id={`f-${key}`} value={filters[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}>
-                  {options.map((option) => <option key={option}>{option}</option>)}
+                  {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             ))}

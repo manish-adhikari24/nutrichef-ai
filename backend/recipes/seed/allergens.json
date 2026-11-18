@@ -1,0 +1,186 @@
+[
+  {
+    "name": "Peanuts",
+    "aliases": [
+      "peanut",
+      "groundnut",
+      "satay"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Tree nuts",
+    "aliases": [
+      "almond",
+      "cashew",
+      "walnut",
+      "pecan",
+      "hazelnut",
+      "pistachio",
+      "macadamia",
+      "brazil nut",
+      "pine nut",
+      "praline",
+      "marzipan"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Milk",
+    "aliases": [
+      "milk",
+      "cheese",
+      "feta",
+      "butter",
+      "yogurt",
+      "yoghurt",
+      "cream",
+      "whey",
+      "ghee",
+      "parmesan",
+      "halloumi",
+      "mozzarella",
+      "paneer",
+      "custard"
+    ],
+    "exceptions": [
+      "coconut milk",
+      "coconut cream",
+      "oat milk",
+      "almond milk",
+      "soy milk",
+      "rice milk",
+      "peanut butter",
+      "almond butter",
+      "cashew butter",
+      "dairy-free",
+      "cream of tartar"
+    ]
+  },
+  {
+    "name": "Eggs",
+    "aliases": [
+      "egg",
+      "mayonnaise",
+      "mayo",
+      "aioli",
+      "meringue"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Wheat",
+    "aliases": [
+      "wheat",
+      "flour",
+      "pasta",
+      "bread",
+      "couscous",
+      "noodle",
+      "tortilla",
+      "semolina",
+      "spaghetti",
+      "soy sauce",
+      "breadcrumb"
+    ],
+    "exceptions": [
+      "rice flour",
+      "almond flour",
+      "chickpea flour",
+      "coconut flour",
+      "corn flour",
+      "corn tortilla",
+      "rice noodle",
+      "gluten-free",
+      "wheat-free"
+    ]
+  },
+  {
+    "name": "Gluten",
+    "aliases": [
+      "wheat",
+      "flour",
+      "pasta",
+      "bread",
+      "couscous",
+      "barley",
+      "rye",
+      "semolina",
+      "seitan",
+      "noodle",
+      "tortilla",
+      "spaghetti",
+      "soy sauce",
+      "breadcrumb"
+    ],
+    "exceptions": [
+      "rice flour",
+      "almond flour",
+      "chickpea flour",
+      "coconut flour",
+      "corn flour",
+      "corn tortilla",
+      "rice noodle",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Soy",
+    "aliases": [
+      "soy",
+      "soya",
+      "tofu",
+      "edamame",
+      "tempeh",
+      "miso"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Fish",
+    "aliases": [
+      "fish",
+      "salmon",
+      "tuna",
+      "anchovy",
+      "anchovies",
+      "sardine",
+      "cod",
+      "trout",
+      "barramundi",
+      "worcestershire"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Shellfish",
+    "aliases": [
+      "prawn",
+      "shrimp",
+      "crab",
+      "lobster",
+      "mussel",
+      "oyster",
+      "clam",
+      "scallop",
+      "squid"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Sesame",
+    "aliases": [
+      "sesame",
+      "tahini"
+    ],
+    "exceptions": []
+  },
+  {
+    "name": "Lupin",
+    "aliases": [
+      "lupin",
+      "lupine"
+    ],
+    "exceptions": []
+  }
+]

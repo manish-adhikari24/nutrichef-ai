@@ -9,12 +9,31 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import ConsumedMeal, GeneratedRecipe, RecipeMessage, SavedRecipe, WaterLog
-from .seed_data import SAMPLE_RECIPES
+from .models import (
+    ActivityLevel,
+    Allergen,
+    ChoiceOption,
+    ConsumedMeal,
+    Diet,
+    FitnessGoal,
+    GeneratedRecipe,
+    AllergenAlias,
+    AllergenException,
+    IngredientAlias,
+    IngredientCategory,
+    MealType,
+    NutritionItem,
+    RecipeMessage,
+    SampleRecipe,
+    SavedRecipe,
+    WaterLog,
+)
+from .reference import DbChoiceField, choices, meal_types, prep_minutes
 from .services import ai, chat
 from .services.allergens import find_allergens
 from .services.nutrition import (
@@ -38,17 +57,23 @@ NOT_FOUND = {'error': 'We could not find that.'}
 SAMPLE_CYCLE = itertools.count()
 
 
-# Checks the Generate Recipe form (FR-09). Every filter must be one of the allowed values.
+# Checks the Generate Recipe form (FR-09). Every filter must be one of the seeded choices.
 class GenerateRequest(serializers.Serializer):
     ingredients = serializers.ListField(child=serializers.CharField(max_length=80), allow_empty=False, max_length=60, error_messages={'empty': 'Please enter at least one ingredient.'})
-    meal = serializers.ChoiceField(choices=['Breakfast', 'Lunch', 'Dinner', 'Snack'], default='Dinner')
-    cuisine = serializers.ChoiceField(choices=['Any', 'Asian', 'Mediterranean', 'Mexican', 'Western'], default='Any')
-    difficulty = serializers.ChoiceField(choices=['Any', 'Easy', 'Medium', 'Hard'], default='Any')
-    budget = serializers.ChoiceField(choices=['Any', 'Low', 'Medium', 'High'], default='Any')
-    minutes = serializers.ChoiceField(choices=[15, 30, 60], required=False, allow_null=True)
+    meal = DbChoiceField(meal_types, default='Dinner')
+    cuisine = DbChoiceField(lambda: choices('cuisine'), default='Any')
+    difficulty = DbChoiceField(lambda: choices('difficulty'), default='Any')
+    budget = DbChoiceField(lambda: choices('budget'), default='Any')
+    minutes = serializers.IntegerField(required=False, allow_null=True)
     calories = serializers.IntegerField(min_value=50, max_value=2500, required=False, allow_null=True)
     servings = serializers.IntegerField(min_value=1, max_value=12, default=2)
     notes = serializers.CharField(max_length=300, allow_blank=True, default='')
+
+    # The time limit must be one of the seeded prep times (15, 30 or 60 minutes).
+    def validate_minutes(self, value):
+        if value is not None and value not in prep_minutes():
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
+        return value
 
 
 # The names of the user's allergies.
@@ -241,9 +266,57 @@ class SampleRecipeView(BaseGenerateView):
         data, allergies, error = self.prepare(request)
         if error:
             return error
-        # Pick the next sample recipe in turn.
-        recipe = SAMPLE_RECIPES[next(SAMPLE_CYCLE) % len(SAMPLE_RECIPES)]
+        # Pick the next sample recipe in turn, from the sample_recipes table.
+        samples = list(SampleRecipe.objects.values_list('recipe', flat=True))
+        if not samples:
+            return Response({'error': 'No sample recipes are available.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        recipe = samples[next(SAMPLE_CYCLE) % len(samples)]
         return self.finish(request, data, recipe, 'sample', allergies)
+
+
+# Display name for an ingredient chip, e.g. "chicken breast" -> "Chicken breast".
+def display_name(name):
+    return name[:1].upper() + name[1:]
+
+
+# GET /api/reference: every seeded list the website needs, so it keeps no copies of its own.
+class ReferenceView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        aliases, exceptions = {}, {}
+        for allergen, word in AllergenAlias.objects.values_list('allergen', 'word'):
+            aliases.setdefault(allergen, []).append(word)
+        for allergen, phrase in AllergenException.objects.values_list('allergen', 'phrase'):
+            exceptions.setdefault(allergen, []).append(phrase)
+        options = {}
+        for option in ChoiceOption.objects.all():
+            options.setdefault(option.group, []).append({'value': option.value, 'label': option.label})
+        return Response({
+            'allergens': [
+                {'name': a.name, 'aliases': aliases.get(a.name, []), 'exceptions': exceptions.get(a.name, [])}
+                for a in Allergen.objects.all()
+            ],
+            'ingredientCategories': [
+                {'name': c.name, 'ingredients': [display_name(i.name) for i in c.items.all()]}
+                for c in IngredientCategory.objects.prefetch_related('items')
+            ],
+            'ingredientAliases': dict(IngredientAlias.objects.values_list('alias', 'name')),
+            'knownIngredients': list(NutritionItem.objects.values_list('name', flat=True)),
+            'goals': [
+                {'value': g.value, 'label': g.label, 'calorieAdjust': g.calorie_adjust, 'macros': [g.protein_pct, g.carbs_pct, g.fat_pct]}
+                for g in FitnessGoal.objects.all()
+            ],
+            'activityLevels': [{'value': a.value, 'label': a.label} for a in ActivityLevel.objects.all()],
+            'diets': list(Diet.objects.values_list('name', flat=True)),
+            'mealTypes': list(MealType.objects.values_list('name', flat=True)),
+            'sexes': options.get('sex', []),
+            'cuisines': options.get('cuisine', []),
+            'difficulties': options.get('difficulty', []),
+            'budgets': options.get('budget', []),
+            'prepTimes': options.get('prep_time', []),
+        })
 
 
 # A chat message as the front end shows it.
