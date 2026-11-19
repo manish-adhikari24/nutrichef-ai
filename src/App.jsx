@@ -10,6 +10,7 @@ import Features from './pages/Features.jsx';
 import Results from './pages/Results.jsx';
 import Reviews from './pages/Reviews.jsx';
 import Story from './pages/Story.jsx';
+import Privacy from './pages/Privacy.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Login from './pages/Login.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
@@ -35,6 +36,7 @@ const TITLES = {
   '/results': 'Results | NutriChef AI',
   '/reviews': 'Reviews | NutriChef AI',
   '/our-story': 'Our story | NutriChef AI',
+  '/privacy': 'Privacy Policy | NutriChef AI',
   '/signup': 'Create your account | NutriChef AI',
   '/login': 'Sign in | NutriChef AI',
   '/verify-email': 'Verify your email | NutriChef AI',
@@ -93,6 +95,7 @@ export default function App() {
           <Route path="/results" element={<Results />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/our-story" element={<Story />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/verify-email" element={<VerifyEmail />} />

@@ -44,6 +44,7 @@ from .services.nutrition import (
     normalize_ingredients,
     nutrition_looks_wrong,
 )
+from .services.recipe_text import strip_nutrition_figures, why_it_fits
 from .services.suggestions import (
     WELLNESS_DISCLAIMER,
     suggest_substitutions,
@@ -97,11 +98,14 @@ def recipe_payload(recipe, user):
     allergies = user_allergies(user)
     nutrition = {'kcal': recipe.calories, 'protein': recipe.protein_g, 'carbs': recipe.carbs_g, 'fat': recipe.fat_g}
     content = recipe.content
+    alignment = assess_recipe(nutrition, recipe.meal_type, profile)
     # Everything the recipe card needs. Goal alignment and suggestions are worked out fresh each time.
+    # The text never quotes the AI's own nutrition estimate: those figures are removed, and the
+    # calculated ones are added, so the text always matches the nutrition panel.
     return {
         'id': recipe.id,
         'title': recipe.title,
-        'description': content['description'],
+        'description': strip_nutrition_figures(content['description']),
         'minutes': recipe.cooking_time,
         'servings': recipe.servings,
         'difficulty': recipe.difficulty,
@@ -116,11 +120,11 @@ def recipe_payload(recipe, user):
         # The browser gets ingredient names and amounts only, not the internal gram and nutrition figures.
         'ingredients': [{'name': i['name'], 'amount': i['amount'], 'missing': i['missing']} for i in content['ingredients']],
         'steps': content['steps'],
-        'why_it_fits': content['why_it_fits'],
+        'why_it_fits': why_it_fits(content['why_it_fits'], nutrition, alignment, recipe.meal_type),
         'label_checks': content['label_checks'],
         'constraint_warning': content['constraint_warning'],
         'allergiesChecked': recipe.allergies_checked,
-        'alignment': assess_recipe(nutrition, recipe.meal_type, profile),
+        'alignment': alignment,
         'substitutions': suggest_substitutions(content['ingredients'], allergies, profile.diet),
         'supplements': suggest_supplements(nutrition, recipe.meal_type, profile),
     }

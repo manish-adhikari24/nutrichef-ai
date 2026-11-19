@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChatCircleDots, PaperPlaneRight } from '@phosphor-icons/react';
 import { sendChat } from '../lib/api.js';
+import FormattedText from './FormattedText.jsx';
 
 // Example messages shown before the chat starts.
 const SUGGESTIONS = [
@@ -74,11 +75,12 @@ export default function RecipeChat({ recipe, messages, messagesLeft, onReply, on
       {(messages.length > 0 || busy) && (
         <div className="assistant-log" ref={logRef} aria-live="polite">
           {messages.map((m) => (
-            <p key={m.id} className={`assistant-msg ${m.role === 'user' ? 'is-user' : 'is-bot'}`}>
+            <div key={m.id} className={`assistant-msg ${m.role === 'user' ? 'is-user' : 'is-bot'}`}>
               <span className="visually-hidden">{m.role === 'user' ? 'You: ' : 'Assistant: '}</span>
-              {m.content}
+              {/* The cook's own words are shown as typed. Replies get light formatting (lists, bold). */}
+              {m.role === 'user' ? m.content : <FormattedText text={m.content} />}
               {m.changed && <b className="assistant-changed">Recipe updated</b>}
-            </p>
+            </div>
           ))}
           {busy && <p className="assistant-msg is-user"><span className="visually-hidden">You: </span>{pending}</p>}
           {busy && <p className="assistant-msg is-bot" role="status">Thinking… a change can take up to a minute.</p>}

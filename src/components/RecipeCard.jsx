@@ -1,6 +1,6 @@
 // Shows a full recipe: AI label, allergy check, nutrition, goal alignment, ingredients, method, swaps and supplements.
 import { Link } from 'react-router-dom';
-import { Check, CheckCircle, ShieldCheck, Sparkle, Timer, UsersThree, Warning, WarningCircle } from '@phosphor-icons/react';
+import { ArrowsClockwise, CheckCircle, CircleNotch, ShieldCheck, Sparkle, Timer, UsersThree, Warning, WarningCircle } from '@phosphor-icons/react';
 
 // Explains where the nutrition numbers came from.
 const NUTRITION_SOURCES = {
@@ -9,8 +9,9 @@ const NUTRITION_SOURCES = {
   ai_estimated: 'AI-estimated values, not checked against our nutrition dataset.',
 };
 
-// accepted/onAccept: which swaps the user picked (only on the Generate page). children: extra buttons below.
-export default function RecipeCard({ recipe, accepted = {}, onAccept, children }) {
+// onSwap: applies a swap (recipe page only). swapping: the swap in progress. swapDisabled: no chat messages left.
+// swapStatus: { ok, text } after a swap. children: extra buttons below.
+export default function RecipeCard({ recipe, onSwap, swapping = null, swapDisabled = false, swapStatus = null, children }) {
   const { alignment, substitutions, supplements } = recipe;
   const { kcal, protein, carbs, fat } = recipe.nutrition;
   // Filter badges, skipping "Any".
@@ -107,26 +108,33 @@ export default function RecipeCard({ recipe, accepted = {}, onAccept, children }
       </div>
 
       {/* Swaps for missing ingredients. Buttons on the Generate page, plain chips elsewhere. */}
+      {/* Swaps for missing ingredients. On the recipe page each one rewrites the recipe through the chat. */}
       {substitutions.length > 0 && (
         <section aria-labelledby="subs-title" className="recipe-block">
-          <h3 id="subs-title" className="dash-h2">Smart substitutions</h3>
+          <h3 id="subs-title" className="dash-h2">Swap an ingredient</h3>
+          <p className="field-hint subs-hint">
+            {onSwap
+              ? 'Choosing a swap rewrites the recipe with it, re-checks your allergies and recalculates nutrition. It uses 1 of this recipe’s 10 chat messages.'
+              : 'Ideas for ingredients you don’t have.'}
+          </p>
           <ul className="subs">
             {substitutions.map(({ ingredient, options }) => (
               <li key={ingredient}>
                 <p>Instead of <b>{ingredient}</b>:</p>
                 <div className="chip-list">
                   {options.map((option) => {
-                    const on = accepted[ingredient] === option.name;
-                    return onAccept ? (
+                    const busy = swapping === `${ingredient}|${option.name}`;
+                    return onSwap ? (
                       <button
                         key={option.name}
                         type="button"
-                        className={`chip chip-btn${on ? ' chip-on' : ''}`}
-                        aria-pressed={on}
-                        onClick={() => onAccept(ingredient, on ? null : option.name)}
+                        className="chip chip-btn"
+                        disabled={Boolean(swapping) || swapDisabled}
+                        onClick={() => onSwap(ingredient, option)}
                       >
-                        {on && <Check size={14} weight="bold" aria-hidden />}
-                        {option.name}, {option.reason}
+                        {busy ? <CircleNotch size={14} className="spin" aria-hidden /> : <ArrowsClockwise size={14} aria-hidden />}
+                        {busy ? `Swapping in ${option.name}…` : `Use ${option.name}`}
+                        <small>{option.reason}</small>
                       </button>
                     ) : (
                       <span key={option.name} className="chip">{option.name}, {option.reason}</span>
@@ -136,6 +144,7 @@ export default function RecipeCard({ recipe, accepted = {}, onAccept, children }
               </li>
             ))}
           </ul>
+          {swapStatus && <p className={`subs-status${swapStatus.ok ? ' is-ok' : ''}`} role="status">{swapStatus.text}</p>}
         </section>
       )}
 

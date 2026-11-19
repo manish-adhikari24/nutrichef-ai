@@ -29,6 +29,7 @@ export default function Login() {
     e.preventDefault();
     const found = {};
     if (!email.trim()) found.email = 'Enter your email address.';
+    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) found.email = 'Enter a valid email address.';
     if (!password) found.password = 'Enter your password.';
     setErrors(found);
     setFormError('');

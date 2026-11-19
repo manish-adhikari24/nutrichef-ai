@@ -584,3 +584,30 @@ class WellnessTests(Base):
         self.assertEqual(insights['protein'], '4 of 4 days')
         self.assertEqual(insights['water'], '1.1 glasses')
         self.assertTrue(all('consult' in t['disclaimer'] or 'not medical' in t['disclaimer'] for t in data['tips']))
+
+
+# The recipe's wording never disagrees with its calculated nutrition (review issue 1).
+class RecipeTextTests(Base):
+    def test_ai_figures_are_replaced_by_calculated_ones(self):
+        recipe = GeneratedRecipe.objects.create(
+            user=self.user, title='Wrap', meal_type='Dinner', difficulty='Easy', cooking_time=20, servings=2,
+            calories=699, protein_g=83, carbs_g=42, fat_g=22, nutrition_source='calculated',
+            content={
+                'description': 'A quick wrap. About 612 kcal per serving.',
+                'ingredients': [{'name': 'Chicken breast', 'amount': '300 g', 'missing': False}],
+                'steps': ['Cook 300 g of chicken.'],
+                'why_it_fits': 'High in protein to support your goal. It has 612 kcal, 65g protein, 46 g carbs and 19 g of fat. Uses what you have.',
+                'label_checks': [], 'constraint_warning': '',
+            },
+        )
+        saved = self.client.post('/api/saved', {'recipeId': recipe.id}, format='json').data['recipe']
+        why = saved['why_it_fits']
+        for stale in ('612', '65g', '46 g', '19 g'):
+            self.assertNotIn(stale, why)
+        self.assertIn('High in protein to support your goal.', why)
+        self.assertIn('Uses what you have.', why)
+        self.assertIn('699 kcal, 83 g protein, 42 g carbs and 22 g fat', why)
+        self.assertEqual(saved['description'], 'A quick wrap.')
+        # Ingredient amounts in the steps are left alone.
+        self.assertEqual(saved['steps'], ['Cook 300 g of chicken.'])
+        self.assertEqual(saved['nutrition'], {'kcal': 699, 'protein': 83, 'carbs': 42, 'fat': 22})

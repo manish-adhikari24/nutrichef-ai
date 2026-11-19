@@ -1,7 +1,10 @@
 // Draft terms for Australia. A lawyer should review these before launch.
-// Fill in the bracketed details: they are highlighted wherever the terms are shown.
+// Bracketed details are highlighted wherever the terms are shown. [[Privacy Policy]] becomes a link to /privacy.
 // The draft date shown at the top of the Terms pop-up.
-export const TERMS_STATUS = 'Draft, 31 October 2026';
+export const TERMS_STATUS = 'Draft, 20 November 2026';
+
+// Where people can contact the team. Shown in the Terms and the Privacy Policy.
+export const CONTACT_EMAIL = 'noreply.nutrichefai@gmail.com';
 
 // Each section has a title and one or more paragraphs. TermsDialog shows them as a numbered list.
 export const TERMS = [
@@ -46,7 +49,7 @@ export const TERMS = [
       'Details such as your height, weight, age and allergies can be sensitive information under the Privacy Act 1988 (Cth). We collect only what we need for meal personalisation, and we do not store medical diagnoses. We use these details with your consent, and you can change or remove them, or withdraw consent, in your profile at any time.',
       'To write a recipe, we send your ingredients, filters, diet, calorie and macro targets, and a list of ingredients to avoid to our AI provider, Anthropic (Claude). We don\'t send your name, email, age or body details, and we don\'t label anything as an allergy. Anthropic may process this outside Australia. Don\'t type personal or health details into the notes field. We don\'t sell your health information.',
       'We email verification and sign-in codes through our email provider, Brevo, which receives your name and email address to send them.',
-      'Our Privacy Policy explains how we collect, store and protect personal information, and how to access or correct it or make a complaint.',
+      'Our [[Privacy Policy]] explains how we collect, store and protect personal information, and how to access or correct it or make a complaint.',
     ],
   },
   {
@@ -92,7 +95,7 @@ export const TERMS = [
   {
     title: 'Governing law and contact',
     body: [
-      'These terms are governed by the laws of New South Wales, Australia. Contact us first about any problem at [contact email] and we\'ll try to resolve it.',
+      'These terms are governed by the laws of New South Wales, Australia. Contact us first about any problem at ' + CONTACT_EMAIL + ' and we\'ll try to resolve it.',
     ],
   },
 ];

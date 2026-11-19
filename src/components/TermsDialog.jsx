@@ -3,12 +3,15 @@ import { useEffect, useRef } from 'react';
 import { X } from '@phosphor-icons/react';
 import { TERMS, TERMS_STATUS } from '../data/terms.js';
 
-// Highlights [placeholders] so unfinished details are easy to spot.
+// Turns [[Privacy Policy]] into a link, and highlights any other [placeholder] so unfinished details are easy to spot.
 function WithPlaceholders({ text }) {
-  // Split the text around [brackets] and wrap the bracketed parts in <mark>.
-  return text.split(/(\[[^\]]+\])/).map((part, i) =>
-    part.startsWith('[') ? <mark key={i}>{part}</mark> : part
-  );
+  return text.split(/(\[\[[^\]]+\]\]|\[[^\]]+\])/).map((part, i) => {
+    if (part === '[[Privacy Policy]]') {
+      // A new tab, so a half-filled sign-up form isn't lost.
+      return <a key={i} href="/privacy" target="_blank" rel="noopener noreferrer" className="inline-link">Privacy Policy</a>;
+    }
+    return part.startsWith('[') ? <mark key={i}>{part}</mark> : part;
+  });
 }
 
 // open: whether it's showing. onClose: close it. onAgree: tick the Terms box and close.

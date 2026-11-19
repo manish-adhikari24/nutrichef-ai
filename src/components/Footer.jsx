@@ -18,6 +18,7 @@ export default function Footer() {
           <Link to="/our-story">Our story</Link>
           <Link to="/signup">Create an account</Link>
           <Link to="/login">Sign in</Link>
+          <Link to="/privacy">Privacy Policy</Link>
         </nav>
         <p className="footer-fine">
           © {new Date().getFullYear()} NutriChef AI. Recipes are suggestions, not medical advice.

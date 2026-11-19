@@ -6,7 +6,7 @@ import { ArrowLeft, Check, CircleNotch, ForkKnife, Heart, Trash, Warning } from 
 import LoadStatus from '../../components/LoadStatus.jsx';
 import RecipeCard from '../../components/RecipeCard.jsx';
 import RecipeChat from '../../components/RecipeChat.jsx';
-import { deleteRecipe, generateRecipe, getRecipeChat, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
+import { deleteRecipe, generateRecipe, getRecipeChat, logMeal, sampleRecipe, saveRecipe, sendChat } from '../../lib/api.js';
 import { useLoad } from '../../lib/useLoad.js';
 import { filterBadges } from './GenerateRecipe.jsx';
 
@@ -98,10 +98,11 @@ function RecipeView({ id }) {
   const { reloadRecent } = useOutletContext();
   const navigate = useNavigate();
   const { data, setData, error, loading, reload } = useLoad(() => getRecipeChat(id), [id]);
-  // Favourites options, swaps the user accepted, and the log state.
+  // Favourites options, the swap in progress and its result, and the log state.
   const [note, setNote] = useState('');
   const [rating, setRating] = useState(0);
-  const [accepted, setAccepted] = useState({});
+  const [swapping, setSwapping] = useState(null);
+  const [swapStatus, setSwapStatus] = useState(null);
   const [logged, setLogged] = useState(false);
   const [message, setMessage] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -128,17 +129,41 @@ function RecipeView({ id }) {
   // Update part of the loaded data. `changes` is an object, or a function of the current data.
   const patch = (changes) => setData((d) => ({ ...d, ...(typeof changes === 'function' ? changes(d) : changes) }));
 
-  // Add to favourites. The note includes any swaps the user accepted.
+  // Add to favourites with the optional note and rating.
   async function onSave() {
-    const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
     try {
-      await saveRecipe(recipe.id, { note: [note.trim(), ...subs].filter(Boolean).join('. '), rating });
+      await saveRecipe(recipe.id, { note: note.trim(), rating });
       patch({ saved: true });
       setMessage('Added to favourites.');
     } catch (err) {
       // 409 means it was already a favourite.
       if (err.status === 409) patch({ saved: true });
       setMessage(err.message);
+    }
+  }
+
+  // Apply a swap: the chat rewrites the recipe, the server re-checks allergens and recalculates nutrition.
+  async function onSwap(ingredient, option) {
+    setSwapping(`${ingredient}|${option.name}`);
+    setSwapStatus(null);
+    try {
+      const result = await sendChat(
+        recipe.id,
+        `Please change the recipe: replace the ${ingredient} with ${option.name}, and update the amounts, method and anything else that depends on it.`
+      );
+      patch((d) => ({ messages: [...d.messages, ...result.messages], messagesLeft: result.messagesLeft }));
+      if (result.changed) {
+        patch({ recipe: result.recipe });
+        reloadRecent();
+        setSwapStatus({ ok: true, text: `Recipe updated: ${ingredient} swapped for ${option.name}. Allergens were re-checked and nutrition recalculated.` });
+      } else {
+        setSwapStatus({ ok: false, text: 'The recipe wasn’t changed. The chat below explains why.' });
+      }
+    } catch (err) {
+      if (err.code === 'chat_limit') patch({ messagesLeft: 0 });
+      setSwapStatus({ ok: false, text: err.message });
+    } finally {
+      setSwapping(null);
     }
   }
 
@@ -169,7 +194,7 @@ function RecipeView({ id }) {
     <>
       <p className="recipe-back"><Link to="/dashboard/generate" className="inline-link"><ArrowLeft size={16} aria-hidden /> New recipe</Link></p>
 
-      <RecipeCard recipe={recipe} accepted={accepted} onAccept={(ingredient, value) => setAccepted((a) => ({ ...a, [ingredient]: value }))}>
+      <RecipeCard recipe={recipe} onSwap={onSwap} swapping={swapping} swapDisabled={messagesLeft === 0} swapStatus={swapStatus}>
         {/* Note and rating for favourites, shown until it's added. */}
         {!saved && (
           <div className="save-fields">
