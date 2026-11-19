@@ -1135,3 +1135,113 @@ input[type='range'] {
 .assistant-limit {
   margin-top: 4px;
 }
+
+/* ---------- Top bar: theme toggle and account menu ---------- */
+
+/* The content column beside the sidebar: top bar, then the page. */
+.dash-content {
+  min-width: 0;
+}
+
+/* Sticks to the top of the screen while the page scrolls. */
+.dash-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 10px clamp(16px, 4vw, 48px);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.dash-head.is-open {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+
+/* The dropdown, lined up with the right edge of the button. */
+.profile-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 250px;
+  padding: 6px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.profile-menu-who {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-menu-who b,
+.profile-menu-who small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu-who small {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-menu-item:hover,
+.profile-menu-item:focus-visible {
+  background: var(--paper-2);
+}
+
+/* Log out sits apart from the other items. */
+.profile-menu-item.is-signout {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* Phones: the top strip already shows the logo, so the top bar sits on its right instead of adding a row. */
+@media (max-width: 860px) {
+  .dash {
+    position: relative;
+  }
+  .dash-topbar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 10px 16px;
+    background: none;
+    backdrop-filter: none;
+    border-bottom: 0;
+  }
+}

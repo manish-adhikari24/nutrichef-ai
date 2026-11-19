@@ -12,10 +12,9 @@ import {
   House,
   PersonSimpleWalk,
   Question,
-  SignOut,
-  User,
 } from '@phosphor-icons/react';
 import Logo from './Logo.jsx';
+import ProfileMenu from './ProfileMenu.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import { getProfile, getReference, isSignedIn, listRecent, logout } from '../lib/api.js';
 import { useLoad } from '../lib/useLoad.js';
@@ -108,13 +107,12 @@ export default function DashboardLayout() {
 
   return (
     <div className="dash">
-      {/* Sidebar: logo, theme toggle, menu, log out and profile button. */}
+      {/* Sidebar: logo and menu. */}
       <aside className="dash-side">
         <div className="dash-brand">
           <Link to="/dashboard" className="header-logo" aria-label="NutriChef AI dashboard">
             <Logo />
           </Link>
-          <ThemeToggle />
         </div>
         <nav className="dash-nav" aria-label="Dashboard">
           {NAV_GROUPS.map((group) => (
@@ -137,15 +135,14 @@ export default function DashboardLayout() {
             <span>More</span>
           </NavLink>
         </nav>
-        <div className="dash-tools">
-          <button type="button" className="dash-logout" onClick={signOut}>
-            <SignOut size={20} aria-hidden /> Log out
-          </button>
-          <NavLink to="/dashboard/profile" className="dash-head" aria-label="Your profile" title="Your profile">
-            <User size={20} weight="bold" aria-hidden />
-          </NavLink>
-        </div>
       </aside>
+
+      <div className="dash-content">
+        {/* Top bar: light/dark mode and the account menu (profile, settings, log out). Stays in view while scrolling. */}
+        <header className="dash-topbar">
+          <ThemeToggle />
+          {profile && <ProfileMenu profile={profile} onSignOut={signOut} />}
+        </header>
 
       {/* The page's content. Shared data is passed to it through the Outlet context. */}
       <main id="main" className="dash-main" tabIndex={-1}>
@@ -159,6 +156,7 @@ export default function DashboardLayout() {
           />
         )}
       </main>
+      </div>
     </div>
   );
 }
