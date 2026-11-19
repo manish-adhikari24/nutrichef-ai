@@ -152,7 +152,7 @@ export default function Dashboard() {
         <Link to="/dashboard/allergies"><FirstAidKit size={24} aria-hidden /> Allergy profile</Link>
       </nav>
 
-      {/* Today's macros and recent saved recipes, side by side. */}
+      {/* Today's macros and recent favourites, side by side. */}
       <div className="dash-columns">
         <section aria-labelledby="macro-title">
           <div className="dash-h2-row">
@@ -170,11 +170,11 @@ export default function Dashboard() {
 
         <section aria-labelledby="recent-title">
           <div className="dash-h2-row">
-            <h2 id="recent-title" className="dash-h2">Recent recipes</h2>
+            <h2 id="recent-title" className="dash-h2">Favourites</h2>
             <Link to="/dashboard/saved" className="inline-link">View all</Link>
           </div>
           {recent.length === 0 ? (
-            <p className="dash-empty">Recipes you save will appear here.</p>
+            <p className="dash-empty">Recipes you add to favourites will appear here.</p>
           ) : (
             <ul className="dash-rows">
               {recent.map((item) => (

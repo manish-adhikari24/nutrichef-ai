@@ -10,7 +10,7 @@ urlpatterns = [
     path('recipes/generate', views.GenerateRecipeView.as_view()),
     # A clearly labelled example recipe for when the AI is unavailable.
     path('recipes/sample', views.SampleRecipeView.as_view()),
-    # Recipe chat (off unless RECIPE_CHAT_ENABLED=1): the recent list, one recipe with its chat, and sending a message.
+    # Recent recipes, one recipe with its chat (open or delete), and sending a chat message.
     path('recipes/recent', views.RecentRecipesView.as_view()),
     path('recipes/<int:pk>', views.RecipeDetailView.as_view()),
     path('recipes/<int:pk>/chat', views.RecipeChatView.as_view()),

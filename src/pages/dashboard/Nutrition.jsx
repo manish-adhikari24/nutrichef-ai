@@ -58,7 +58,7 @@ export default function Nutrition() {
         <p className="dash-empty">
           Nothing logged {view === 'today' ? 'today' : 'this week'}.{' '}
           <Link to="/dashboard/generate" className="inline-link">Generate a recipe</Link> or log one from your{' '}
-          <Link to="/dashboard/saved" className="inline-link">saved recipes</Link>.
+          <Link to="/dashboard/saved" className="inline-link">favourites</Link>.
         </p>
       ) : (
         <MacroBars totals={totals} targets={shownTargets} />

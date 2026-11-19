@@ -1,4 +1,4 @@
-// Saved Recipes page: filter, search, page through, view, log, or delete saved recipes (FR-12, FR-13).
+// Favourites page (saved recipes): filter, search, page through, view, log, or remove favourites (FR-12, FR-13).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretDown, CaretUp, ForkKnife, ShieldCheck, Sparkle, Star, Trash } from '@phosphor-icons/react';
@@ -77,8 +77,8 @@ export default function SavedRecipes() {
       {/* Title, count and a Generate button. */}
       <div className="dash-top">
         <div>
-          <h1 className="dash-title">Saved recipes</h1>
-          {data && <p className="dash-date">{data.totalSaved} saved</p>}
+          <h1 className="dash-title">Favourites</h1>
+          {data && <p className="dash-date">{data.totalSaved} {data.totalSaved === 1 ? 'favourite' : 'favourites'}</p>}
         </div>
         <Link to="/dashboard/generate" className="btn btn-primary"><Sparkle size={18} weight="fill" aria-hidden /> Generate new</Link>
       </div>
@@ -97,7 +97,7 @@ export default function SavedRecipes() {
       {hasAny && (
         <>
           <div className="saved-tools">
-            <div className="chip-list" role="group" aria-label="Filter saved recipes">
+            <div className="chip-list" role="group" aria-label="Filter favourites">
               {FILTERS.map((label) => (
                 <button
                   key={label}
@@ -120,7 +120,7 @@ export default function SavedRecipes() {
 
           {/* No matches, or one card per saved recipe. */}
           {data.results.length === 0 ? (
-            <p className="dash-empty">No saved recipes match. Try another filter or search.</p>
+            <p className="dash-empty">No favourites match. Try another filter or search.</p>
           ) : (
             <ul className="saved-list">
               {data.results.map((item) => {
@@ -178,7 +178,7 @@ export default function SavedRecipes() {
       {/* Delete confirmation dialog. */}
       <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="delete-title" onClose={() => setPendingDelete(null)}>
         <h2 id="delete-title" className="dash-h2">Delete this recipe?</h2>
-        <p>{pendingDelete?.recipe.title} will be removed from your saved recipes.</p>
+        <p>{pendingDelete?.recipe.title} will be removed from your favourites. It stays in Recent recipes.</p>
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={() => setPendingDelete(null)}>Keep recipe</button>
           <button type="button" className="btn btn-danger" onClick={confirmDelete}>Delete recipe</button>

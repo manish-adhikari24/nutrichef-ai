@@ -50,9 +50,9 @@ logger = logging.getLogger(__name__)
 # Saved recipes per page.
 PAGE_SIZE = 6
 # Recipes shown in the "Recent recipes" list.
-RECENT_SIZE = 20
-# The reply while the chat feature is switched off.
-NOT_FOUND = {'error': 'We could not find that.'}
+RECENT_SIZE = 10
+# Chat messages a cook can send about one recipe.
+CHAT_LIMIT = 10
 # Rotates through the sample recipes.
 SAMPLE_CYCLE = itertools.count()
 
@@ -324,10 +324,8 @@ def message_payload(message):
     return {'id': message.id, 'role': message.role, 'content': message.content, 'changed': message.changed_recipe}
 
 
-# Finds one of the signed-in user's recipes for the chat endpoints. Returns None while the feature is off.
-def chat_recipe(request, pk):
-    if not chat.enabled():
-        return None
+# Finds one of the signed-in user's recipes.
+def own_recipe(request, pk):
     recipe = get_object_or_404(GeneratedRecipe, pk=pk)
     # Users can only open their own recipes.
     if recipe.user_id != request.user.id:
@@ -335,12 +333,14 @@ def chat_recipe(request, pk):
     return recipe
 
 
-# GET /api/recipes/recent: the user's 20 newest recipes, for the "Recent recipes" list.
+# How many more chat messages the cook can send about this recipe.
+def messages_left(recipe):
+    return max(CHAT_LIMIT - recipe.messages.filter(role='user').count(), 0)
+
+
+# GET /api/recipes/recent: the user's 10 newest recipes, for the "Recent recipes" list in the sidebar.
 class RecentRecipesView(APIView):
     def get(self, request):
-        # The front end uses this 404 to know the chat feature is switched off.
-        if not chat.enabled():
-            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         recipes = GeneratedRecipe.objects.filter(user=request.user)[:RECENT_SIZE]
         return Response({
             'results': [
@@ -353,33 +353,33 @@ class RecentRecipesView(APIView):
 # GET or DELETE /api/recipes/<id>: reopen a recipe with its chat, or delete it.
 class RecipeDetailView(APIView):
     def get(self, request, pk):
-        recipe = chat_recipe(request, pk)
-        if recipe is None:
-            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        recipe = own_recipe(request, pk)
         return Response({
             'recipe': recipe_payload(recipe, request.user),
             'messages': [message_payload(m) for m in recipe.messages.all()],
+            'messagesLeft': messages_left(recipe),
             'saved': SavedRecipe.objects.filter(user=request.user, generated_recipe=recipe).exists(),
         })
 
     # Deleting a recipe also removes its chat and its saved copy (cascade). Logged meals are kept.
     def delete(self, request, pk):
-        recipe = chat_recipe(request, pk)
-        if recipe is None:
-            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        recipe.delete()
+        own_recipe(request, pk).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # POST /api/recipes/<id>/chat: ask a question about a recipe, or ask for a change to it.
+# Each recipe allows CHAT_LIMIT messages. Refused and off-topic messages count too.
 class RecipeChatView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'chat'
 
     def post(self, request, pk):
-        recipe = chat_recipe(request, pk)
-        if recipe is None:
-            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        recipe = own_recipe(request, pk)
+        if messages_left(recipe) == 0:
+            return Response(
+                {'code': 'chat_limit', 'error': f"You've used all {CHAT_LIMIT} messages for this recipe."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         class Body(serializers.Serializer):
             message = serializers.CharField(max_length=500)
@@ -400,7 +400,8 @@ class RecipeChatView(APIView):
         except ai.NotConfigured:
             return Response({'code': 'not_configured', 'error': "The assistant isn't connected yet."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ai.Refused:
-            return Response({'error': "I can't help with that. Try a question about cooking this recipe."}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+            # Stored like any reply, so a refused message uses one of the 10.
+            answer, new_recipe = "I can't help with that. Ask me about cooking this recipe or what to serve with it.", None
         except ai.Unavailable:
             return Response({'error': "The assistant couldn't answer right now. Try again in a moment."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -430,6 +431,7 @@ class RecipeChatView(APIView):
             replied = RecipeMessage.objects.create(recipe=recipe, role='assistant', content=answer, changed_recipe=changed)
         return Response({
             'messages': [message_payload(asked), message_payload(replied)],
+            'messagesLeft': messages_left(recipe),
             'changed': changed,
             'recipe': recipe_payload(recipe, request.user),
         })

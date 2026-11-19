@@ -1,5 +1,5 @@
 // Layout for every signed-in page: sidebar menu (bottom bar on phones), then the current page.
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ChartDonut,
@@ -10,14 +10,14 @@ import {
   GearSix,
   Heart,
   House,
+  PersonSimpleWalk,
   Question,
-  BookmarkSimple,
   SignOut,
   User,
 } from '@phosphor-icons/react';
 import Logo from './Logo.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
-import { getProfile, getReference, isSignedIn, logout } from '../lib/api.js';
+import { getProfile, getReference, isSignedIn, listRecent, logout } from '../lib/api.js';
 import { useLoad } from '../lib/useLoad.js';
 import LoadStatus from './LoadStatus.jsx';
 
@@ -28,7 +28,7 @@ export const NAV_GROUPS = [
     links: [
       { to: '/dashboard', label: 'Dashboard', icon: House, end: true },
       { to: '/dashboard/generate', label: 'Generate recipe', short: 'Generate', icon: CookingPot },
-      { to: '/dashboard/saved', label: 'Saved recipes', short: 'Saved', icon: BookmarkSimple },
+      { to: '/dashboard/saved', label: 'Favourites', short: 'Favourites', icon: Heart },
       { to: '/dashboard/nutrition', label: 'Nutrition tracker', short: 'Nutrition', icon: ChartDonut },
     ],
   },
@@ -37,7 +37,7 @@ export const NAV_GROUPS = [
     links: [
       { to: '/dashboard/allergies', label: 'Allergy profile', icon: FirstAidKit },
       { to: '/dashboard/progress', label: 'Progress', icon: ChartLineUp },
-      { to: '/dashboard/wellness', label: 'Wellness', icon: Heart },
+      { to: '/dashboard/wellness', label: 'Wellness', icon: PersonSimpleWalk },
     ],
   },
   {
@@ -49,6 +49,16 @@ export const NAV_GROUPS = [
   },
 ];
 
+// An empty Generate form. Prep time stores the minutes as text ('30'), or 'any'.
+const EMPTY_DRAFT = {
+  rawIngredients: [],
+  filters: { meal: 'Dinner', cuisine: 'Any', time: '30', difficulty: 'Any', budget: 'Any' },
+  useCalories: false,
+  calories: 500,
+  servings: 2,
+  notes: '',
+};
+
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,8 +66,36 @@ export default function DashboardLayout() {
   const { data: profile, setData: setProfile, error, loading, reload } = useLoad(() => (isSignedIn() ? getProfile() : null));
   // The seeded lists (allergens, ingredients, goals, diets, form choices), loaded once from the database.
   const ref = useLoad(getReference);
-  // Kept here so the latest recipe is still there after visiting another page.
-  const [currentRecipe, setCurrentRecipe] = useState(null);
+  // The Generate form, kept here so it's still filled in after visiting the recipe page.
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
+  // The recipe being written: { request, promise }. Kept here so leaving the page doesn't stop it.
+  const [generation, setGeneration] = useState(null);
+  // The 10 newest recipes for the sidebar.
+  const [recent, setRecent] = useState([]);
+
+  const reloadRecent = useCallback(async () => {
+    try {
+      setRecent((await listRecent()).results);
+    } catch {
+      // The list is a convenience. If it fails, the rest of the app still works.
+    }
+  }, []);
+
+  // Load the list once when signed in.
+  useEffect(() => {
+    if (isSignedIn()) reloadRecent();
+  }, [reloadRecent]);
+
+  // Start writing a recipe with the given API call (real or sample). The new recipe joins Recent recipes.
+  const startGeneration = useCallback((request, call) => {
+    const promise = call(request).then((recipe) => {
+      reloadRecent();
+      return recipe;
+    });
+    // Stop the browser warning about an unhandled error. The recipe page shows it instead.
+    promise.catch(() => {});
+    setGeneration({ request, promise });
+  }, [reloadRecent]);
 
   // Not signed in: go to login, remembering which page they wanted.
   if (!isSignedIn()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
@@ -89,6 +127,8 @@ export default function DashboardLayout() {
                   <span className="dash-link-short">{short ?? label}</span>
                 </NavLink>
               ))}
+              {/* Recent recipes go under the Main links (hidden in the phone's bottom bar). */}
+              {group.label === 'Main' && <RecentRecipes items={recent} writing={generation} />}
             </div>
           ))}
           {/* "More" link, shown only in the phone's bottom bar. */}
@@ -110,7 +150,7 @@ export default function DashboardLayout() {
       {/* The page's content. Shared data is passed to it through the Outlet context. */}
       <main id="main" className="dash-main" tabIndex={-1}>
         {profile && ref.data ? (
-          <Outlet context={{ profile, setProfile, reference: ref.data, currentRecipe, setCurrentRecipe }} />
+          <Outlet context={{ profile, setProfile, reference: ref.data, draft, setDraft, generation, startGeneration, recent, reloadRecent }} />
         ) : (
           <LoadStatus
             loading={loading || ref.loading}
@@ -121,4 +161,39 @@ export default function DashboardLayout() {
       </main>
     </div>
   );
+}
+
+// "Recent recipes" in the sidebar: the 10 newest recipes, saved automatically when generated.
+// `writing` is set while a recipe is being written, and links to its progress page.
+export function RecentRecipes({ items, writing }) {
+  return (
+    <div className="recent-nav" aria-labelledby="recent-nav-title">
+      <p id="recent-nav-title" className="dash-group-label">Recent recipes</p>
+      {writing && <WritingLink writing={writing} />}
+      {items.length === 0 && !writing ? (
+        <p className="recent-nav-empty">Recipes you generate appear here.</p>
+      ) : (
+        <ul>
+          {items.map((item) => (
+            <li key={item.id}>
+              <NavLink to={`/dashboard/recipe/${item.id}`} className="recent-nav-link" title={item.title}>{item.title}</NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// A "Writing your recipe…" link, shown only until the recipe is finished or fails.
+function WritingLink({ writing }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setDone(false);
+    writing.promise.then(() => active && setDone(true), () => active && setDone(true));
+    return () => { active = false; };
+  }, [writing]);
+  if (done) return null;
+  return <NavLink to="/dashboard/recipe/new" className="recent-nav-link is-writing">Writing your recipe…</NavLink>;
 }

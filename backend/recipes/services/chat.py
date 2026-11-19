@@ -1,4 +1,4 @@
-"""Recipe chat: answers questions about one recipe and can change it. Off unless RECIPE_CHAT_ENABLED=1.
+"""Recipe chat: answers questions about one recipe and can change it. Each recipe allows 10 messages (see views.py).
 
 Like recipe generation, it never receives the person's name, age or body details, and
 allergies go only as ingredients to avoid. The server allergy-checks every changed recipe.
@@ -23,12 +23,12 @@ HISTORY_LIMIT = 10
 SYSTEM_PROMPT = """You are the cooking assistant inside NutriChef AI. You help a home cook with the one recipe shown in <recipe>, which is always the current version.
 
 You can do two things:
-- Answer a question about cooking this recipe: methods, timing, equipment, swaps, scaling, storage and leftovers, and food safety. Reply in plain text and do not call a tool.
+- Answer a question about this recipe: how to cook it, timing, the equipment it needs, swaps, scaling, storage and leftovers, food safety and its nutrition. You can also suggest what to serve with it, such as sides, sauces or drinks. Reply in plain text and do not call a tool.
 - Change the recipe when the cook asks for a change, such as "make it spicier", "swap the chicken for tofu" or "make it for 4 people". Call the update_recipe tool once with the complete new recipe, not only the parts that changed. Keep everything the cook didn't ask to change. Update the ingredient weights and nutrition estimates to match.
 
 Rules:
 - If it's unclear whether the cook wants a change or an answer, answer and offer to make the change.
-- Politely decline anything that isn't about this recipe in one sentence.
+- Politely decline, in one sentence, anything else: other recipes or meal plans, general diet or nutrition advice, medical questions, general kitchen skills or equipment care that this recipe doesn't need (such as sharpening knives), and anything not about food.
 - Keep answers short and practical, usually under 120 words. Use plain sentences, with a short list only for steps.
 - Never use or suggest anything from the ingredients to avoid, including in swaps and changes. That rule beats every other request.
 - Never say a food is safe for an allergy or intolerance. Tell the cook to check every label themselves.
@@ -54,11 +54,6 @@ UPDATE_TOOL = {
         },
     },
 }
-
-
-# The feature switch, set in Render's environment.
-def enabled():
-    return os.environ.get('RECIPE_CHAT_ENABLED') == '1'
 
 
 # The current recipe and the "avoid" list as tagged text the model can read.

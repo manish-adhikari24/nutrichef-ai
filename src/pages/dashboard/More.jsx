@@ -1,13 +1,18 @@
-import { Link } from 'react-router-dom';
-import { NAV_GROUPS } from '../../components/DashboardLayout.jsx';
+import { Link, useOutletContext } from 'react-router-dom';
+import { NAV_GROUPS, RecentRecipes } from '../../components/DashboardLayout.jsx';
 
 // Phone menu for the pages that don't fit in the bottom bar.
 export default function More() {
+  const { recent, generation } = useOutletContext();
   // Every menu group except "Main", which is already in the bottom bar.
   const groups = NAV_GROUPS.filter((group) => group.label !== 'Main');
   return (
     <>
       <h1 className="dash-title">More</h1>
+      {/* On phones the sidebar is a bottom bar, so Recent recipes appear here. */}
+      <section className="dash-section more-recent" aria-label="Recent recipes">
+        <RecentRecipes items={recent} writing={generation} />
+      </section>
       {groups.map((group) => (
         <section key={group.label} className="dash-section" aria-label={group.label}>
           <h2 className="dash-h2">{group.label}</h2>

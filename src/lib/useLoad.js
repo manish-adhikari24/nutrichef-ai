@@ -25,6 +25,10 @@ export function useLoad(load, deps = []) {
   }, [reload]);
 
   // Lets a page update the data locally, e.g. after saving.
-  const setData = useCallback((data) => setState((s) => ({ ...s, data })), []);
+  // Accepts a value, or a function that receives the current data (like React's setState).
+  const setData = useCallback(
+    (data) => setState((s) => ({ ...s, data: typeof data === 'function' ? data(s.data) : data })),
+    []
+  );
   return { ...state, reload, setData };
 }

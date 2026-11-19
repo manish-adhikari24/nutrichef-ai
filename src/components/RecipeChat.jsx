@@ -1,5 +1,6 @@
 // Chat under a recipe: ask cooking questions about it, or ask for changes to it.
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChatCircleDots, PaperPlaneRight } from '@phosphor-icons/react';
 import { sendChat } from '../lib/api.js';
 
@@ -11,9 +12,11 @@ const SUGGESTIONS = [
   'How long will leftovers keep?',
 ];
 
-// messages: [{ id, role: 'user' | 'assistant', content, changed }], kept by the page and stored on the server.
-// onRecipeChange: called with the new recipe when a reply changed it.
-export default function RecipeChat({ recipe, messages, setMessages, onRecipeChange }) {
+// messages: [{ id, role: 'user' | 'assistant', content, changed }], stored on the server.
+// messagesLeft: how many of the 10 messages for this recipe remain.
+// onReply: called with the server's reply ({ messages, messagesLeft, changed, recipe }).
+// onLimit: called if the server says the limit is reached.
+export default function RecipeChat({ recipe, messages, messagesLeft, onReply, onLimit }) {
   const [text, setText] = useState('');
   // The message being sent, shown straight away while waiting for the reply.
   const [pending, setPending] = useState('');
@@ -41,10 +44,12 @@ export default function RecipeChat({ recipe, messages, setMessages, onRecipeChan
     setError('');
     setPending(content);
     try {
-      const result = await sendChat(recipe.id, content);
-      setMessages((m) => [...m, ...result.messages]);
-      if (result.changed) onRecipeChange(result.recipe);
+      onReply(await sendChat(recipe.id, content));
     } catch (err) {
+      if (err.code === 'chat_limit') {
+        onLimit();
+        return;
+      }
       // Failed: put the message back in the box to try again.
       setText(content);
       setError(err.message);
@@ -61,8 +66,8 @@ export default function RecipeChat({ recipe, messages, setMessages, onRecipeChan
         <ChatCircleDots size={22} aria-hidden /> Chat about this recipe
       </h2>
       <p className="assistant-intro">
-        Ask a cooking question, or ask for a change and the recipe above will update. Changes are
-        allergen-checked. AI can make mistakes, and it can&apos;t tell you whether something is safe for an allergy.
+        Ask about this recipe or what to serve with it, or ask for a change and the recipe above will update.
+        Changes are allergen-checked. AI can make mistakes, and it can&apos;t tell you whether something is safe for an allergy.
       </p>
 
       {/* The conversation. aria-live reads new replies aloud to screen readers. */}
@@ -81,7 +86,7 @@ export default function RecipeChat({ recipe, messages, setMessages, onRecipeChan
       )}
 
       {/* Example message buttons, until the chat starts. */}
-      {messages.length === 0 && !busy && (
+      {messages.length === 0 && !busy && messagesLeft > 0 && (
         <div className="chip-list assistant-suggestions" role="group" aria-label="Example messages">
           {SUGGESTIONS.map((s) => (
             <button key={s} type="button" className="chip chip-btn" onClick={() => send(s)}>{s}</button>
@@ -89,6 +94,13 @@ export default function RecipeChat({ recipe, messages, setMessages, onRecipeChan
         </div>
       )}
 
+      {/* All 10 messages used: the box is replaced by a note. */}
+      {messagesLeft === 0 && !busy ? (
+        <p className="care-note assistant-limit" role="note">
+          You&apos;ve used all 10 messages for this recipe. <Link to="/dashboard/generate" className="inline-link">Generate a new recipe</Link> to keep chatting.
+        </p>
+      ) : (
+      <>
       {/* Message box and Send button. */}
       <form className="dash-add" onSubmit={(e) => { e.preventDefault(); send(text); }} noValidate>
         <div className="dash-add-name">
@@ -108,6 +120,9 @@ export default function RecipeChat({ recipe, messages, setMessages, onRecipeChan
         </button>
         {error && <p id="assistant-error" className="field-error dash-add-error" role="alert">{error}</p>}
       </form>
+      <p className="field-hint assistant-count" aria-live="polite">{messagesLeft} of 10 messages left for this recipe</p>
+      </>
+      )}
     </section>
   );
 }

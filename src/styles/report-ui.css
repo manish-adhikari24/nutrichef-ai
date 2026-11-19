@@ -907,103 +907,6 @@ input[type='range'] {
   color: var(--herb);
 }
 
-/* Generate page with the chat on: recent recipes on the left, the page on the right. */
-.generate-shell {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: clamp(20px, 3vw, 36px);
-  align-items: start;
-}
-
-/* The recent list stays in view while the page scrolls. */
-.recent {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100dvh - 32px);
-  overflow: hidden auto;
-  padding-right: 4px;
-}
-
-.recent-empty {
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-
-/* minmax(0, 1fr) lets long titles shorten with "…" instead of widening the list. */
-.recent-list {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-}
-
-/* One row: the recipe button and its delete button. */
-.recent-list li {
-  display: flex;
-  align-items: center;
-  border-radius: var(--radius-sm);
-}
-
-.recent-list li:hover,
-.recent-list .is-active {
-  background: var(--paper-2);
-}
-
-.recent-open {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 0;
-  background: none;
-  text-align: left;
-}
-
-.recent-open b,
-.recent-open small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recent-open b {
-  font-weight: 500;
-}
-
-.recent-list .is-active b {
-  color: var(--beet);
-}
-
-.recent-open small {
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-
-.recent-delete {
-  flex: none;
-  color: var(--ink-2);
-}
-
-/* With the list beside it, the form needs the full width sooner. */
-@media (max-width: 1500px) {
-  .generate-shell .generate-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* Laptops and smaller: the recent list sits above the page, in a short scrolling box. */
-@media (max-width: 1100px) {
-  .generate-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .recent {
-    position: static;
-    max-height: 220px;
-    padding: 12px 14px;
-    border: 1.5px solid var(--line);
-    border-radius: var(--radius);
-  }
-}
-
 /* Ingredient search: the dropdown sits under the box, over the content below. */
 .ingredient-search {
   margin-bottom: var(--space-4);
@@ -1067,4 +970,153 @@ input[type='range'] {
   margin-top: 4px;
   color: var(--beet);
   font-weight: 500;
+}
+
+/* Recent recipes in the sidebar. The list scrolls if it's taller than the space left. */
+.recent-nav {
+  margin-top: 14px;
+}
+
+.recent-nav ul {
+  display: grid;
+  gap: 1px;
+}
+
+.recent-nav-link {
+  display: block;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.recent-nav-link:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.recent-nav-link.active {
+  background: var(--paper-2);
+  color: var(--beet);
+  font-weight: 500;
+}
+
+.recent-nav-link.is-writing {
+  color: var(--beet);
+  font-style: italic;
+}
+
+.recent-nav-empty {
+  padding: 0 12px;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+/* The sidebar's menu scrolls when Recent recipes make it taller than the screen. */
+.dash-nav {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Phones: the sidebar is a bottom bar, so Recent recipes move to the More page. */
+@media (max-width: 860px) {
+  .dash-side .recent-nav {
+    display: none;
+  }
+}
+
+/* The More page shows Recent recipes only on phones (the sidebar has them elsewhere). */
+.more-recent .dash-group-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  color: var(--ink);
+}
+
+.more-recent .recent-nav-link {
+  padding-block: 10px;
+  font-size: var(--step-0);
+  color: var(--ink);
+}
+
+@media (min-width: 861px) {
+  .more-recent {
+    display: none;
+  }
+}
+
+/* Recipe page: back link, progress screen and chat counter. */
+.recipe-back {
+  margin-bottom: var(--space-3);
+}
+
+.recipe-back .inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.generating-chips {
+  margin-block: var(--space-3) var(--space-4);
+}
+
+.generating {
+  padding: 22px 24px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.generating-steps {
+  display: grid;
+  gap: 14px;
+  margin-bottom: var(--space-4);
+}
+
+.generating-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+}
+
+.generating-steps .is-current {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.generating-steps .is-done svg {
+  color: var(--herb);
+}
+
+.step-dot {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+/* Spinning progress icon (still for people who prefer reduced motion, via base.css). */
+.spin {
+  color: var(--beet);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.assistant-count {
+  margin-top: 8px;
+}
+
+.assistant-limit {
+  margin-top: 4px;
 }

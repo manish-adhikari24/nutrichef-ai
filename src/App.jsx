@@ -26,6 +26,7 @@ import Settings from './pages/dashboard/Settings.jsx';
 import Help from './pages/dashboard/Help.jsx';
 import More from './pages/dashboard/More.jsx';
 import Profile from './pages/dashboard/Profile.jsx';
+import RecipePage from './pages/dashboard/RecipePage.jsx';
 
 // Browser tab title for each page.
 const TITLES = {
@@ -41,7 +42,7 @@ const TITLES = {
   '/forgot-password': 'Reset your password | NutriChef AI',
   '/dashboard': 'Dashboard | NutriChef AI',
   '/dashboard/generate': 'Generate recipe | NutriChef AI',
-  '/dashboard/saved': 'Saved recipes | NutriChef AI',
+  '/dashboard/saved': 'Favourites | NutriChef AI',
   '/dashboard/nutrition': 'Nutrition tracker | NutriChef AI',
   '/dashboard/allergies': 'Allergy profile | NutriChef AI',
   '/dashboard/progress': 'Progress | NutriChef AI',
@@ -73,7 +74,7 @@ export default function App() {
   // On every route change: reset scroll, update the title, move focus to the new page.
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = TITLES[pathname] ?? 'Page not found | NutriChef AI';
+    document.title = TITLES[pathname] ?? (pathname.startsWith('/dashboard/recipe/') ? 'Recipe | NutriChef AI' : 'Page not found | NutriChef AI');
     if (firstRender.current) {
       firstRender.current = false;
       return;
@@ -105,6 +106,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="generate" element={<GenerateRecipe />} />
+          <Route path="recipe/:id" element={<RecipePage />} />
           <Route path="saved" element={<SavedRecipes />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="allergies" element={<AllergyProfile />} />

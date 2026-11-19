@@ -1,20 +1,17 @@
-// Generate Recipe page: add ingredients, choose filters, generate, then save or log the recipe (FR-04 to FR-10).
-// When the recipe chat is switched on, it also shows a "Recent recipes" list and a chat under the recipe.
-import { useEffect, useRef, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
-import { BookmarkSimple, Check, ForkKnife, Sparkle, Warning, X } from '@phosphor-icons/react';
+// Generate Recipe page: add ingredients and choose filters (FR-04, FR-09).
+// Generate opens the recipe page, which shows progress and then the recipe with its chat.
+import { useState } from 'react';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Sparkle, Warning, X } from '@phosphor-icons/react';
 import IngredientSearch from '../../components/IngredientSearch.jsx';
-import RecentRecipes from '../../components/RecentRecipes.jsx';
-import RecipeCard from '../../components/RecipeCard.jsx';
-import RecipeChat from '../../components/RecipeChat.jsx';
-import { allAllergies, deleteRecipe, generateRecipe, getRecipeChat, listRecent, logMeal, sampleRecipe, saveRecipe } from '../../lib/api.js';
+import { allAllergies, generateRecipe } from '../../lib/api.js';
 import { findAllergens } from '../../lib/allergens.js';
 import { normalizeList } from '../../lib/ingredients.js';
 import { dailyTargets } from '../../lib/nutrition.js';
 
 // The filter drop-downs (FR-09). Their options are the seeded choices from the database.
 // Each option is { value, label }. Meal types are plain names, so they're turned into the same shape.
-function filterList(reference) {
+export function filterList(reference) {
   const named = (names) => names.map((name) => ({ value: name, label: name }));
   return [
     { key: 'meal', label: 'Meal type', options: named(reference.mealTypes) },
@@ -24,214 +21,68 @@ function filterList(reference) {
     { key: 'budget', label: 'Budget', options: reference.budgets },
   ];
 }
-// Errors where a sample recipe should be offered instead.
-const OFFER_SAMPLE = ['not_configured', 'ai_unavailable'];
+
+// Badges for the chosen filters, using each option's label and skipping "Any".
+export function filterBadges(draft, reference) {
+  const badges = filterList(reference)
+    .map(({ key, options }) => options.find((o) => o.value === draft.filters[key]))
+    .filter((o) => o && o.label !== 'Any')
+    .map((o) => o.label);
+  if (draft.useCalories) badges.push(`About ${draft.calories} kcal`);
+  return badges;
+}
 
 export default function GenerateRecipe() {
-  // currentRecipe lives in DashboardLayout, so it's kept when moving between pages.
+  // The form lives in DashboardLayout (`draft`), so it's still filled in after visiting the recipe page.
   // reference holds the seeded lists from the database (allergens, ingredients, filter choices).
-  const { profile, reference, currentRecipe, setCurrentRecipe } = useOutletContext();
-  // The ingredients typed or picked so far.
-  const [rawIngredients, setRawIngredients] = useState([]);
-  // Filter values. Prep time stores the minutes as text ('30'), or 'any'.
-  const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: '30', difficulty: 'Any', budget: 'Any' });
-  // Optional calorie target per serving.
-  const [useCalories, setUseCalories] = useState(false);
-  const [calories, setCalories] = useState(500);
-  const [servings, setServings] = useState(2);
-  const [notes, setNotes] = useState('');
-  // Generation state and messages.
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [message, setMessage] = useState('');
-  // Save options for the finished recipe.
-  const [note, setNote] = useState('');
-  const [rating, setRating] = useState(0);
-  // Swaps the user accepted, the save state and the log state.
-  const [accepted, setAccepted] = useState({});
-  const [saved, setSaved] = useState(false);
-  const [logged, setLogged] = useState(false);
-  // Recipe chat. `recent` is null while the feature is switched off (or not yet checked).
-  const [recent, setRecent] = useState(null);
-  const [messages, setMessages] = useState([]);
-  // The recent recipe waiting for delete confirmation.
-  const [pendingDelete, setPendingDelete] = useState(null);
-  const dialogRef = useRef(null);
+  const { profile, reference, draft, setDraft, startGeneration } = useOutletContext();
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+
+  // Change one part of the form.
+  const update = (key, value) => setDraft((d) => ({ ...d, [key]: typeof value === 'function' ? value(d[key]) : value }));
 
   // Allergies, consent and cleaned-up ingredient names, worked out from the profile and the list.
   const allergies = allAllergies(profile);
   const consent = profile.healthConsent;
-  const ingredients = normalizeList(rawIngredients, reference);
+  const ingredients = normalizeList(draft.rawIngredients, reference);
   const names = ingredients.map((i) => i.name);
   // An instant warning while typing. The server's check decides what's blocked.
   const conflicts = findAllergens(names, allergies, reference.allergens);
   const filterFields = filterList(reference);
-  // Badges for the chosen filters, using each option's label and skipping "Any".
-  const activeBadges = filterFields
-    .map(({ key, options }) => options.find((o) => o.value === filters[key]))
-    .filter((o) => o && o.label !== 'Any')
-    .map((o) => o.label);
-  if (useCalories) activeBadges.push(`About ${calories} kcal`);
-
-  // Add ingredients chosen or typed in the search box.
-  function addIngredients(names) {
-    setRawIngredients((list) => [...list, ...names]);
-  }
+  const activeBadges = filterBadges(draft, reference);
 
   // Remove an ingredient from the list.
   function removeIngredient(name) {
-    setRawIngredients(ingredients.filter((i) => i.name !== name).map((i) => i.name));
+    update('rawIngredients', ingredients.filter((i) => i.name !== name).map((i) => i.name));
   }
 
-  // The request body sent to the API.
-  function buildRequest() {
-    return {
-      ingredients: names,
-      meal: filters.meal,
-      cuisine: filters.cuisine,
-      difficulty: filters.difficulty,
-      budget: filters.budget,
-      minutes: /^\d+$/.test(filters.time) ? Number(filters.time) : null,
-      calories: useCalories ? calories : null,
-      servings,
-      notes,
-    };
-  }
-
-  // Generate a recipe with the given API call (real or sample). Stops early if there are no ingredients or there's an allergy conflict.
-  // Load the recent list. A failure (404 while the feature is off) hides the list and the chat.
-  async function loadRecent() {
-    try {
-      setRecent((await listRecent()).results);
-      return true;
-    } catch {
-      setRecent(null);
-      return false;
-    }
-  }
-
-  // On opening the page: load the list, and the chat of the recipe that's already showing.
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!(await loadRecent()) || !currentRecipe?.id) return;
-      try {
-        const data = await getRecipeChat(currentRecipe.id);
-        if (active) {
-          setMessages(data.messages);
-          setSaved(data.saved);
-        }
-      } catch {
-        // The recipe may have been deleted elsewhere. The page still works without its chat.
-      }
-    })();
-    return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Open or close the delete dialog to match pendingDelete.
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (pendingDelete && !dialog.open) dialog.showModal();
-    if (!pendingDelete && dialog.open) dialog.close();
-  }, [pendingDelete]);
-
-  // Reopen a recipe from the recent list, with its chat.
-  async function openRecipe(id) {
-    setMessage('');
-    try {
-      const data = await getRecipeChat(id);
-      setCurrentRecipe(data.recipe);
-      setMessages(data.messages);
-      setSaved(data.saved);
-      setLogged(false);
-      setAccepted({});
-      setNote('');
-      setRating(0);
-      setError(null);
-      requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    } catch (err) {
-      setError({ message: err.message });
-    }
-  }
-
-  // Delete a recent recipe after confirmation. If it's the one showing, clear it.
-  async function confirmDelete() {
-    const { id } = pendingDelete;
-    setPendingDelete(null);
-    try {
-      await deleteRecipe(id);
-      if (currentRecipe?.id === id) {
-        setCurrentRecipe(null);
-        setMessages([]);
-      }
-      loadRecent();
-    } catch (err) {
-      setError({ message: err.message });
-    }
-  }
-
-  async function requestRecipe(call) {
-    setMessage('');
+  // Check the form, start writing the recipe, and open the recipe page to watch it.
+  function onGenerate() {
     if (names.length === 0) {
-      setError({ message: 'Please enter at least one ingredient.' });
+      setError('Please enter at least one ingredient.');
       return;
     }
     if (conflicts.length) {
-      setError({ message: `Remove ${conflicts.join(', ')} from your ingredients before generating.` });
+      setError(`Remove ${conflicts.join(', ')} from your ingredients before generating.`);
       return;
     }
-    setBusy(true);
-    setError(null);
-    try {
-      // Show the new recipe, reset the save options, and scroll to it.
-      const recipe = await call(buildRequest());
-      setCurrentRecipe(recipe);
-      setAccepted({});
-      setNote('');
-      setRating(0);
-      setSaved(false);
-      setLogged(false);
-      // A new recipe starts with an empty chat and goes to the top of the recent list.
-      setMessages([]);
-      if (recent !== null) loadRecent();
-      requestAnimationFrame(() => document.getElementById('recipe-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    } catch (err) {
-      // A blocked recipe clears the old one, so an unsafe recipe is never left on screen.
-      if (err.code === 'blocked') setCurrentRecipe(null);
-      setError({ message: err.message, code: err.code });
-    } finally {
-      setBusy(false);
-    }
+    setError('');
+    startGeneration({
+      ingredients: names,
+      meal: draft.filters.meal,
+      cuisine: draft.filters.cuisine,
+      difficulty: draft.filters.difficulty,
+      budget: draft.filters.budget,
+      minutes: /^\d+$/.test(draft.filters.time) ? Number(draft.filters.time) : null,
+      calories: draft.useCalories ? draft.calories : null,
+      servings: draft.servings,
+      notes: draft.notes,
+    }, generateRecipe);
+    navigate('/dashboard/recipe/new');
   }
 
-  // Save the recipe. The note includes any swaps the user accepted.
-  async function onSave() {
-    const subs = Object.entries(accepted).filter(([, value]) => value).map(([from, to]) => `${from} swapped for ${to}`);
-    try {
-      await saveRecipe(currentRecipe.id, { note: [note.trim(), ...subs].filter(Boolean).join('. '), rating });
-      setSaved(true);
-      setMessage('Recipe saved.');
-    } catch (err) {
-      // 409 means it was already saved.
-      if (err.status === 409) setSaved(true);
-      setMessage(err.message);
-    }
-  }
-
-  // Log the recipe as eaten today.
-  async function onLog() {
-    try {
-      await logMeal(currentRecipe.id);
-      setLogged(true);
-      setMessage('Logged as eaten today.');
-    } catch (err) {
-      setMessage(err.message);
-    }
-  }
-
-  const page = (
+  return (
     <>
       <h1 className="dash-title">What&apos;s in your kitchen today?</h1>
       <p className="lede generate-lede">
@@ -263,7 +114,7 @@ export default function GenerateRecipe() {
       <div className="generate-grid">
         <section aria-labelledby="add-title" className="generate-panel">
           <h2 id="add-title" className="dash-h2">Add ingredients</h2>
-          <IngredientSearch reference={reference} added={names} onAdd={addIngredients} />
+          <IngredientSearch reference={reference} added={names} onAdd={(list) => update('rawIngredients', (old) => [...old, ...list])} />
 
           <h3 className="dash-h3">Your added ingredients ({ingredients.length})</h3>
           {ingredients.length === 0 ? (
@@ -300,33 +151,33 @@ export default function GenerateRecipe() {
             {filterFields.map(({ key, label, options }) => (
               <div key={key} className="field">
                 <label htmlFor={`f-${key}`} className="field-label">{label}</label>
-                <select id={`f-${key}`} value={filters[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}>
+                <select id={`f-${key}`} value={draft.filters[key]} onChange={(e) => update('filters', (f) => ({ ...f, [key]: e.target.value }))}>
                   {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             ))}
             <div className="field">
               <label htmlFor="f-servings" className="field-label">Servings</label>
-              <select id="f-servings" value={servings} onChange={(e) => setServings(Number(e.target.value))}>
+              <select id="f-servings" value={draft.servings} onChange={(e) => update('servings', Number(e.target.value))}>
                 {[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}
               </select>
             </div>
           </div>
 
           <label className="check-row">
-            <input type="checkbox" checked={useCalories} onChange={(e) => setUseCalories(e.target.checked)} />
+            <input type="checkbox" checked={draft.useCalories} onChange={(e) => update('useCalories', e.target.checked)} />
             <span>Set a calorie target per serving</span>
           </label>
-          {useCalories && (
+          {draft.useCalories && (
             <div className="field calorie-field">
-              <label htmlFor="f-calories" className="field-label">About {calories} kcal</label>
-              <input id="f-calories" type="range" min="100" max="1200" step="50" value={calories} onChange={(e) => setCalories(Number(e.target.value))} />
+              <label htmlFor="f-calories" className="field-label">About {draft.calories} kcal</label>
+              <input id="f-calories" type="range" min="100" max="1200" step="50" value={draft.calories} onChange={(e) => update('calories', Number(e.target.value))} />
             </div>
           )}
 
           <div className="field">
             <label htmlFor="g-notes" className="field-label">Anything else? <span className="field-optional">Optional</span></label>
-            <input id="g-notes" type="text" maxLength={300} placeholder="Something spicy, one pan only" value={notes} onChange={(e) => setNotes(e.target.value)} aria-describedby="g-notes-hint" />
+            <input id="g-notes" type="text" maxLength={300} placeholder="Something spicy, one pan only" value={draft.notes} onChange={(e) => update('notes', e.target.value)} aria-describedby="g-notes-hint" />
             <p id="g-notes-hint" className="field-hint">Don&apos;t include personal or health details.</p>
           </div>
 
@@ -338,104 +189,13 @@ export default function GenerateRecipe() {
         </section>
       </div>
 
-      {/* The Generate button and a waiting message. */}
+      {/* The Generate button. */}
       <div className="generate-action">
-        <button type="button" className="btn btn-primary btn-lg" onClick={() => requestRecipe(generateRecipe)} disabled={busy}>
-          <Sparkle size={18} weight="fill" aria-hidden />
-          {busy ? 'Writing your recipe…' : 'Generate recipe'}
+        <button type="button" className="btn btn-primary btn-lg" onClick={onGenerate}>
+          <Sparkle size={18} weight="fill" aria-hidden /> Generate recipe
         </button>
-        {busy && <p className="generate-wait" role="status">Checking allergies and writing your recipe.</p>}
       </div>
-
-      {/* Error message, with a sample recipe option or a Try again button. */}
-      {error && (
-        <div className={error.code === 'blocked' ? 'allergy-alert' : 'generate-error'} role="alert">
-          {error.code === 'blocked' && <Warning size={22} weight="fill" aria-hidden />}
-          <p>{error.message}</p>
-          {OFFER_SAMPLE.includes(error.code) && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => requestRecipe(sampleRecipe)} disabled={busy}>Show a sample recipe instead</button>
-          )}
-          {!OFFER_SAMPLE.includes(error.code) && names.length > 0 && conflicts.length === 0 && (
-            <button type="button" className="link-btn" onClick={() => requestRecipe(generateRecipe)}>Try again</button>
-          )}
-        </div>
-      )}
-
-      {/* The generated recipe, with save, log and regenerate buttons. */}
-      {currentRecipe && (
-        <RecipeCard
-          recipe={currentRecipe}
-          accepted={accepted}
-          onAccept={(ingredient, value) => setAccepted((a) => ({ ...a, [ingredient]: value }))}
-        >
-          {/* Note and rating, shown until it's saved. */}
-          {!saved && (
-            <div className="save-fields">
-              <div className="field">
-                <label htmlFor="save-note" className="field-label">Note <span className="field-optional">Optional</span></label>
-                <input id="save-note" type="text" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="save-rating" className="field-label">Rating <span className="field-optional">Optional</span></label>
-                <select id="save-rating" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-                  <option value={0}>No rating</option>
-                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} out of 5</option>)}
-                </select>
-              </div>
-            </div>
-          )}
-          <div className="recipe-actions">
-            <button type="button" className="btn btn-primary" onClick={onSave} disabled={saved}>
-              {saved ? <Check size={18} weight="bold" aria-hidden /> : <BookmarkSimple size={18} aria-hidden />}
-              {saved ? 'Saved' : 'Save recipe'}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={onLog} disabled={logged}>
-              {logged ? <Check size={18} weight="bold" aria-hidden /> : <ForkKnife size={18} aria-hidden />}
-              {logged ? 'Logged' : 'Log as eaten'}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => requestRecipe(generateRecipe)} disabled={busy}>
-              {busy ? 'Writing…' : 'Regenerate'}
-            </button>
-            <span role="status" className="profile-status">{message}</span>
-          </div>
-        </RecipeCard>
-      )}
-
-      {/* The chat, when the feature is on and the recipe is stored on the server. */}
-      {recent !== null && currentRecipe?.id && (
-        <RecipeChat
-          key={currentRecipe.id}
-          recipe={currentRecipe}
-          messages={messages}
-          setMessages={setMessages}
-          onRecipeChange={(recipe) => {
-            setCurrentRecipe(recipe);
-            // The title may have changed, so refresh the list.
-            loadRecent();
-          }}
-        />
-      )}
+      {error && <div className="generate-error" role="alert"><p>{error}</p></div>}
     </>
-  );
-
-  // Chat switched off: the page as it always was.
-  if (recent === null) return page;
-
-  // Chat switched on: recent recipes on the left, the page on the right.
-  return (
-    <div className="generate-shell">
-      <RecentRecipes items={recent} activeId={currentRecipe?.id} onOpen={openRecipe} onDelete={setPendingDelete} />
-      <div className="generate-main">{page}</div>
-
-      {/* Delete confirmation dialog. */}
-      <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="recent-delete-title" onClose={() => setPendingDelete(null)}>
-        <h2 id="recent-delete-title" className="dash-h2">Delete this recipe?</h2>
-        <p>{pendingDelete?.title} and its chat will be deleted. It will also be removed from your saved recipes.</p>
-        <div className="confirm-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => setPendingDelete(null)}>Keep recipe</button>
-          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Delete recipe</button>
-        </div>
-      </dialog>
-    </div>
   );
 }

@@ -342,8 +342,8 @@ class FakeAnswer:
         self.content = [FakeBlock(b) if isinstance(b, str) else b for b in blocks]
 
 
-# The recipe chat, switched on and with the AI replaced by a fake.
-@patch.dict('os.environ', {'RECIPE_CHAT_ENABLED': '1', 'ANTHROPIC_API_KEY': 'test-key'})
+# The recipe chat, with the AI replaced by a fake.
+@patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'})
 class ChatTests(Base):
     # Helper: create a recipe to chat about.
     def make_recipe(self, user=None):
@@ -420,20 +420,23 @@ class ChatTests(Base):
         self.assertIn('<avoid>none listed</avoid>', create.call_args.kwargs['messages'][-1]['content'])
         self.assertFalse(response.data['changed'])
 
-    # An incomplete recipe from the AI, a refusal or an outage changes nothing and stores nothing.
+    # An incomplete recipe from the AI changes nothing and isn't counted. A refusal is stored and counted.
     @patch('recipes.services.chat.anthropic.Anthropic')
     def test_bad_replies_change_nothing(self, client):
         create = client.return_value.beta.messages.create
         recipe = self.make_recipe()
         create.return_value = FakeAnswer(FakeToolUse({'title': 'Broken'}))
         self.assertEqual(self.chat(recipe, 'Make it spicier').status_code, 503)
+        self.assertEqual(recipe.messages.count(), 0)
         refusal = FakeAnswer('No.')
         refusal.stop_reason = 'refusal'
         create.return_value = refusal
-        self.assertEqual(self.chat(recipe).status_code, 422)
+        response = self.chat(recipe, 'Write my homework')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("can't help", response.data['messages'][1]['content'])
+        self.assertEqual(response.data['messagesLeft'], 9)
         recipe.refresh_from_db()
         self.assertEqual(recipe.title, 'Test bowl')
-        self.assertEqual(recipe.messages.count(), 0)
 
     # The recent list is newest first, a recipe reopens with its chat, and deleting removes it.
     @patch('recipes.services.chat.anthropic.Anthropic')
@@ -465,14 +468,28 @@ class ChatTests(Base):
         self.assertEqual(self.chat(recipe, '').status_code, 400)
         self.assertEqual(self.chat(recipe, 'x' * 501).status_code, 400)
 
-    # The chat is off unless switched on.
-    def test_switched_off_by_default(self):
+    # Each recipe allows 10 messages. The 11th is refused without calling the AI.
+    @patch('recipes.services.chat.anthropic.Anthropic')
+    def test_ten_messages_per_recipe(self, client):
+        create = client.return_value.beta.messages.create
+        create.return_value = FakeAnswer('Sure.')
         recipe = self.make_recipe()
-        with patch.dict('os.environ', {'RECIPE_CHAT_ENABLED': ''}):
-            self.assertEqual(self.chat(recipe).status_code, 404)
-            self.assertEqual(self.client.get('/api/recipes/recent').status_code, 404)
-            self.assertEqual(self.client.get(f'/api/recipes/{recipe.id}').status_code, 404)
-            self.assertEqual(self.client.delete(f'/api/recipes/{recipe.id}').status_code, 404)
+        for left in range(9, -1, -1):
+            self.assertEqual(self.chat(recipe).data['messagesLeft'], left)
+        self.assertEqual(self.client.get(f'/api/recipes/{recipe.id}').data['messagesLeft'], 0)
+        calls = create.call_count
+        response = self.chat(recipe)
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.data['code'], 'chat_limit')
+        self.assertEqual(create.call_count, calls)
+        # Another recipe has its own 10.
+        self.assertEqual(self.chat(self.make_recipe()).data['messagesLeft'], 9)
+
+    # The recent list holds the 10 newest recipes.
+    def test_recent_list_is_capped_at_ten(self):
+        recipes = [self.make_recipe() for _ in range(12)]
+        recent = self.client.get('/api/recipes/recent').data['results']
+        self.assertEqual([r['id'] for r in recent], [r.id for r in reversed(recipes)][:10])
 
 
 # Reference data: loaded from recipes/seed/*.json, served to the website, and used for validation.
