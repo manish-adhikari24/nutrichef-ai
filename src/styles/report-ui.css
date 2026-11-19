@@ -1016,10 +1016,25 @@ input[type='range'] {
   color: var(--ink-2);
 }
 
-/* The sidebar's menu scrolls when Recent recipes make it taller than the screen. */
-.dash-nav {
-  min-height: 0;
-  overflow-y: auto;
+/* Large screens: the menu scrolls up and down (never sideways) when Recent recipes make it taller than the screen.
+   minmax(0, 1fr) keeps every row to the sidebar's width, so long titles end in "…" instead of widening it. */
+@media (min-width: 861px) {
+  .dash-side {
+    overflow: hidden;
+  }
+  .dash-nav {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden auto;
+    /* A thin, quiet scroll bar. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .dash-group,
+  .recent-nav ul {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+  }
 }
 
 /* Phones: the sidebar is a bottom bar, so Recent recipes move to the More page. */
