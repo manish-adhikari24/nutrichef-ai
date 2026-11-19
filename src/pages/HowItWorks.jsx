@@ -8,7 +8,7 @@ import SignupBand from '../components/SignupBand.jsx';
 // What the app takes into account.
 const INPUTS = [
   { icon: Basket, label: 'Your ingredients', hint: 'typed or picked from suggestions' },
-  { icon: FirstAidKit, label: 'Your allergies', hint: 'stored in your allergy profile' },
+  { icon: FirstAidKit, label: 'Your allergies', hint: 'stored in your profile' },
   { icon: Heart, label: 'Your goals', hint: 'calories, protein, carbs and fat' },
   { icon: ForkKnife, label: 'How you eat', hint: 'diet and foods you dislike' },
   { icon: Timer, label: 'Your filters', hint: 'meal, cuisine, time, difficulty, budget' },

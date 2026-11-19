@@ -6,7 +6,6 @@ import {
   ChartLineUp,
   CookingPot,
   DotsThree,
-  FirstAidKit,
   GearSix,
   Heart,
   House,
@@ -34,7 +33,6 @@ export const NAV_GROUPS = [
   {
     label: 'Health',
     links: [
-      { to: '/dashboard/allergies', label: 'Allergy profile', icon: FirstAidKit },
       { to: '/dashboard/progress', label: 'Progress', icon: ChartLineUp },
       { to: '/dashboard/wellness', label: 'Wellness', icon: PersonSimpleWalk },
     ],

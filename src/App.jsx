@@ -19,7 +19,6 @@ import Dashboard from './pages/dashboard/Dashboard.jsx';
 import GenerateRecipe from './pages/dashboard/GenerateRecipe.jsx';
 import SavedRecipes from './pages/dashboard/SavedRecipes.jsx';
 import Nutrition from './pages/dashboard/Nutrition.jsx';
-import AllergyProfile from './pages/dashboard/AllergyProfile.jsx';
 import Progress from './pages/dashboard/Progress.jsx';
 import Wellness from './pages/dashboard/Wellness.jsx';
 import Settings from './pages/dashboard/Settings.jsx';
@@ -44,7 +43,6 @@ const TITLES = {
   '/dashboard/generate': 'Generate recipe | NutriChef AI',
   '/dashboard/saved': 'Favourites | NutriChef AI',
   '/dashboard/nutrition': 'Nutrition tracker | NutriChef AI',
-  '/dashboard/allergies': 'Allergy profile | NutriChef AI',
   '/dashboard/progress': 'Progress | NutriChef AI',
   '/dashboard/wellness': 'Wellness | NutriChef AI',
   '/dashboard/settings': 'Settings | NutriChef AI',
@@ -109,7 +107,8 @@ export default function App() {
           <Route path="recipe/:id" element={<RecipePage />} />
           <Route path="saved" element={<SavedRecipes />} />
           <Route path="nutrition" element={<Nutrition />} />
-          <Route path="allergies" element={<AllergyProfile />} />
+          {/* Allergies now live on the Profile page. Old links still work. */}
+          <Route path="allergies" element={<Navigate to="/dashboard/profile" replace />} />
           <Route path="progress" element={<Progress />} />
           <Route path="wellness" element={<Wellness />} />
           <Route path="settings" element={<Settings />} />

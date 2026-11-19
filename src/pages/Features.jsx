@@ -23,7 +23,7 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: 'Allergy checks on every recipe',
-    body: 'We compare your ingredients and each generated recipe with your allergy profile, and block anything that conflicts.',
+    body: 'We compare your ingredients and each generated recipe with the allergies in your profile, and block anything that conflicts.',
     note: 'still check your labels',
   },
   {

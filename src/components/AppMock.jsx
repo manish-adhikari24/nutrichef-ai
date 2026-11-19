@@ -21,7 +21,7 @@ const FILTERS = [
   ['Budget', 'Low'],
 ];
 
-// Tab 1: ingredients added and the allergy profile.
+// Tab 1: ingredients added and the user's allergies.
 function KitchenPanel() {
   return (
     <div className="mock-grid">
@@ -40,7 +40,7 @@ function KitchenPanel() {
         <p className="mock-note">every one checked against your allergies</p>
       </div>
       <div className="meters">
-        <p className="mock-h">Your allergy profile</p>
+        <p className="mock-h">Your allergies</p>
         <ul className="chip-list" aria-label="Allergies">
           <li className="chip chip-warn"><ShieldCheck size={14} weight="bold" aria-hidden /> Tree nuts</li>
           <li className="chip chip-warn"><ShieldCheck size={14} weight="bold" aria-hidden /> Shellfish</li>

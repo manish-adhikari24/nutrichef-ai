@@ -149,7 +149,7 @@ export default function Dashboard() {
         <Link to="/dashboard/generate"><CookingPot size={24} aria-hidden /> Generate recipe</Link>
         <Link to="/dashboard/saved"><BookmarkSimple size={24} aria-hidden /> Log a meal</Link>
         <Link to="/dashboard/progress"><ChartLineUp size={24} aria-hidden /> View progress</Link>
-        <Link to="/dashboard/allergies"><FirstAidKit size={24} aria-hidden /> Allergy profile</Link>
+        <Link to="/dashboard/profile"><FirstAidKit size={24} aria-hidden /> Allergies &amp; profile</Link>
       </nav>
 
       {/* Today's macros and recent favourites, side by side. */}

@@ -1,7 +1,8 @@
 // Profile page: personal details, body and activity, nutrition goals, food preferences and consent (FR-03).
 import { useState } from 'react';
-import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { allAllergies, EMPTY_HEALTH, saveProfile } from '../../lib/api.js';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import AllergySearch from '../../components/AllergySearch.jsx';
+import { EMPTY_HEALTH, saveProfile } from '../../lib/api.js';
 import { bmi, bmiCategory, suggestTargets } from '../../lib/nutrition.js';
 
 const MACROS = [
@@ -63,7 +64,6 @@ export default function Profile() {
   // Values worked out live as the user types.
   const suggested = suggestTargets(form, reference.goals);
   const macroTotal = form.proteinPct + form.carbsPct + form.fatPct;
-  const allergies = allAllergies(form);
   const under18 = Number(form.age) > 0 && Number(form.age) < 18;
   const bmiValue = bmi(form);
 
@@ -220,7 +220,7 @@ export default function Profile() {
           </fieldset>
         </section>
 
-        {/* Diet, dislikes and a link to the allergy profile. */}
+        {/* Diet, dislikes and allergies. */}
         <section className="profile-section" aria-labelledby="p-food">
           <h2 id="p-food" className="dash-h2">Food preferences</h2>
           <Field id="p-diet" label="Dietary preference">
@@ -231,10 +231,19 @@ export default function Profile() {
           <Field id="p-dislikes" label="Foods you dislike">
             <input id="p-dislikes" type="text" {...bind('dislikes')} />
           </Field>
-          <p className="allergy-summary">
-            <b>Allergies:</b> {allergies.length ? allergies.join(', ') : 'None listed'}.{' '}
-            <Link to="/dashboard/allergies" className="inline-link">Manage allergy profile</Link>
-          </p>
+
+          {/* Allergies (FR-03, used by the allergy checks in FR-06): a search box with a dropdown, and tags below. */}
+          <AllergySearch
+            allergens={reference.allergens}
+            common={form.allergies}
+            other={form.otherAllergies}
+            error={errors.allergies ?? errors.otherAllergies}
+            onChange={({ allergies, otherAllergies }) => {
+              setForm((f) => ({ ...f, allergies, otherAllergies }));
+              setStatus('');
+            }}
+          />
+          <p className="field-hint">We can&apos;t detect cross-contamination or know what&apos;s in a specific product. Always check labels yourself.</p>
         </section>
 
         {/* Consent to send diet, targets and foods to avoid to the AI. */}

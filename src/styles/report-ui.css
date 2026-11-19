@@ -659,10 +659,6 @@ input[type='range'] {
   font-variant-numeric: tabular-nums;
 }
 
-.allergy-summary {
-  margin-top: 4px;
-}
-
 .settings-text {
   max-width: 62ch;
   margin-bottom: 14px;
@@ -1244,4 +1240,40 @@ input[type='range'] {
     backdrop-filter: none;
     border-bottom: 0;
   }
+}
+
+/* Allergy picker on the Profile page. */
+.allergy-field {
+  margin-top: var(--space-4);
+}
+
+.allergy-field .field-hint {
+  margin-bottom: 8px;
+}
+
+.allergy-tags {
+  margin-top: 10px;
+}
+
+/* The chosen allergies: each tag has a small remove button. */
+.allergy-tags .chip {
+  gap: 4px;
+  padding-right: 6px;
+}
+
+.chip-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chip-remove:hover,
+.chip-remove:focus-visible {
+  background: color-mix(in srgb, var(--beet) 15%, transparent);
 }
