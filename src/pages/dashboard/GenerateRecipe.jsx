@@ -2,7 +2,8 @@
 // When the recipe chat is switched on, it also shows a "Recent recipes" list and a chat under the recipe.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { BookmarkSimple, Check, ForkKnife, Plus, Sparkle, Warning, X } from '@phosphor-icons/react';
+import { BookmarkSimple, Check, ForkKnife, Sparkle, Warning, X } from '@phosphor-icons/react';
+import IngredientSearch from '../../components/IngredientSearch.jsx';
 import RecentRecipes from '../../components/RecentRecipes.jsx';
 import RecipeCard from '../../components/RecipeCard.jsx';
 import RecipeChat from '../../components/RecipeChat.jsx';
@@ -30,10 +31,8 @@ export default function GenerateRecipe() {
   // currentRecipe lives in DashboardLayout, so it's kept when moving between pages.
   // reference holds the seeded lists from the database (allergens, ingredients, filter choices).
   const { profile, reference, currentRecipe, setCurrentRecipe } = useOutletContext();
-  // Ingredient input and the list typed or picked so far.
-  const [typed, setTyped] = useState('');
+  // The ingredients typed or picked so far.
   const [rawIngredients, setRawIngredients] = useState([]);
-  const [category, setCategory] = useState('All');
   // Filter values. Prep time stores the minutes as text ('30'), or 'any'.
   const [filters, setFilters] = useState({ meal: 'Dinner', cuisine: 'Any', time: '30', difficulty: 'Any', budget: 'Any' });
   // Optional calorie target per serving.
@@ -42,7 +41,6 @@ export default function GenerateRecipe() {
   const [servings, setServings] = useState(2);
   const [notes, setNotes] = useState('');
   // Generation state and messages.
-  const [inputError, setInputError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
@@ -53,8 +51,6 @@ export default function GenerateRecipe() {
   const [accepted, setAccepted] = useState({});
   const [saved, setSaved] = useState(false);
   const [logged, setLogged] = useState(false);
-  // The ingredient box, so focus can return to it after adding.
-  const inputRef = useRef(null);
   // Recipe chat. `recent` is null while the feature is switched off (or not yet checked).
   const [recent, setRecent] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -69,13 +65,7 @@ export default function GenerateRecipe() {
   const names = ingredients.map((i) => i.name);
   // An instant warning while typing. The server's check decides what's blocked.
   const conflicts = findAllergens(names, allergies, reference.allergens);
-  // Suggestion chips for the selected category.
-  const categories = reference.ingredientCategories;
-  const chips = category === 'All'
-    ? categories.flatMap((c) => c.ingredients)
-    : categories.find((c) => c.name === category)?.ingredients ?? [];
   const filterFields = filterList(reference);
-  // Filters that aren't "Any", shown as badges.
   // Badges for the chosen filters, using each option's label and skipping "Any".
   const activeBadges = filterFields
     .map(({ key, options }) => options.find((o) => o.value === filters[key]))
@@ -83,29 +73,14 @@ export default function GenerateRecipe() {
     .map((o) => o.label);
   if (useCalories) activeBadges.push(`About ${calories} kcal`);
 
-  // Add one ingredient from a suggestion chip.
-  function addIngredient(name) {
-    setRawIngredients((list) => [...list, name]);
-    setInputError('');
+  // Add ingredients chosen or typed in the search box.
+  function addIngredients(names) {
+    setRawIngredients((list) => [...list, ...names]);
   }
 
   // Remove an ingredient from the list.
   function removeIngredient(name) {
     setRawIngredients(ingredients.filter((i) => i.name !== name).map((i) => i.name));
-  }
-
-  // Add whatever is typed. Commas add several at once.
-  function onAdd(e) {
-    e.preventDefault();
-    const parts = typed.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length === 0) {
-      setInputError('Enter an ingredient name to add it.');
-      return;
-    }
-    setRawIngredients((list) => [...list, ...parts]);
-    setTyped('');
-    setInputError('');
-    inputRef.current?.focus();
   }
 
   // The request body sent to the API.
@@ -284,46 +259,11 @@ export default function GenerateRecipe() {
         </div>
       )}
 
-      {/* Left panel: add ingredients, suggestion chips and the added list with allergy warnings. */}
+      {/* Left panel: search for ingredients, and the added list with allergy warnings. */}
       <div className="generate-grid">
         <section aria-labelledby="add-title" className="generate-panel">
           <h2 id="add-title" className="dash-h2">Add ingredients</h2>
-          <form className="dash-add" onSubmit={onAdd} noValidate>
-            <div className="dash-add-name">
-              <label htmlFor="g-ingredient" className="field-label">Ingredient</label>
-              <input
-                id="g-ingredient"
-                ref={inputRef}
-                type="text"
-                placeholder="chicken, broccoli, lemon"
-                value={typed}
-                onChange={(e) => setTyped(e.target.value)}
-                aria-invalid={inputError ? true : undefined}
-                aria-describedby={inputError ? 'g-ingredient-error' : undefined}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary dash-add-btn"><Plus size={18} aria-hidden /> Add</button>
-            {inputError && <p id="g-ingredient-error" className="field-error dash-add-error">{inputError}</p>}
-          </form>
-
-          <div className="chip-list category-chips" role="group" aria-label="Filter suggestions by category">
-            {['All', ...categories.map((c) => c.name)].map((name) => (
-              <button key={name} type="button" className={`chip chip-btn${category === name ? ' chip-on' : ''}`} aria-pressed={category === name} onClick={() => setCategory(name)}>
-                {name}
-              </button>
-            ))}
-          </div>
-          <div className="chip-list" role="group" aria-label="Suggested ingredients">
-            {chips.map((name) => {
-              const on = names.includes(name.toLowerCase());
-              return (
-                <button key={name} type="button" className={`chip chip-btn${on ? ' chip-on' : ''}`} aria-pressed={on} onClick={() => (on ? removeIngredient(name.toLowerCase()) : addIngredient(name))}>
-                  {on && <Check size={14} weight="bold" aria-hidden />}
-                  {name}
-                </button>
-              );
-            })}
-          </div>
+          <IngredientSearch reference={reference} added={names} onAdd={addIngredients} />
 
           <h3 className="dash-h3">Your added ingredients ({ingredients.length})</h3>
           {ingredients.length === 0 ? (
@@ -337,7 +277,7 @@ export default function GenerateRecipe() {
                     <span>
                       {i.name}
                       {bad.length > 0 && <b className="conflict-tag"><Warning size={14} weight="fill" aria-hidden /> Contains {bad.join(', ')}</b>}
-                      {!i.recognised && !bad.length && <small> Not in our list, kept as typed</small>}
+                      {!i.recognised && !bad.length && <small> Not in our list. The AI will work out what it is.</small>}
                     </span>
                     <button type="button" className="icon-btn" onClick={() => removeIngredient(i.name)} aria-label={`Remove ${i.name}`}><X size={18} aria-hidden /></button>
                   </li>

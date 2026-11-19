@@ -494,7 +494,7 @@ class ReferenceDataTests(Base):
         milk = next(a for a in data['allergens'] if a['name'] == 'Milk')
         self.assertIn('cheese', milk['aliases'])
         self.assertIn('coconut milk', milk['exceptions'])
-        proteins = next(c for c in data['ingredientCategories'] if c['name'] == 'Proteins')
+        proteins = next(c for c in data['ingredientCategories'] if c['name'] == 'Meat & poultry')
         self.assertEqual(proteins['ingredients'][0], 'Chicken breast')
         self.assertEqual(data['ingredientAliases']['capsicum'], 'bell pepper')
         self.assertIn('Vegan', data['diets'])

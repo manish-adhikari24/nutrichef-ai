@@ -1,23 +1,35 @@
 [
   {
-    "name": "Proteins"
+    "name": "Meat & poultry"
+  },
+  {
+    "name": "Seafood"
+  },
+  {
+    "name": "Eggs & dairy"
   },
   {
     "name": "Vegetables"
   },
   {
-    "name": "Fruits"
+    "name": "Fruit"
   },
   {
-    "name": "Grains"
+    "name": "Grains, bread & pasta"
   },
   {
-    "name": "Dairy"
+    "name": "Beans & legumes"
   },
   {
-    "name": "Pantry"
+    "name": "Nuts & seeds"
   },
   {
-    "name": "Herbs"
+    "name": "Herbs & spices"
+  },
+  {
+    "name": "Oils, sauces & condiments"
+  },
+  {
+    "name": "Baking & sweet"
   }
 ]

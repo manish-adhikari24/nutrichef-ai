@@ -21,6 +21,7 @@ Write one practical recipe from the details you are given.
 
 Rules:
 - Base the recipe on the listed ingredients. Add as few other ingredients as you can and mark those as missing.
+- Some ingredients may be unusual, regional, brand names or misspelled. Work out what each one most likely is and cook with it, using its usual name in the recipe. If you can't tell what one is, leave it out and say so in constraint_warning.
 - Never include anything from the ingredients to avoid, including in sauces, stocks and garnishes. That rule beats every other request. List anything the cook should check on packaged-food labels in label_checks.
 - Respect the diet, dislikes, filters and servings. If the filters can't all be met, write the closest recipe and explain why in constraint_warning. Otherwise leave constraint_warning empty.
 - Aim close to the nutrition targets per serving. For each ingredient, estimate its weight in grams and the nutrition of that whole amount. The top-level nutrition is your estimate per serving.

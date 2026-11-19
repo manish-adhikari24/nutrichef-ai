@@ -21,7 +21,8 @@
       "brazil nut",
       "pine nut",
       "praline",
-      "marzipan"
+      "marzipan",
+      "pesto"
     ],
     "exceptions": []
   },
@@ -41,7 +42,11 @@
       "halloumi",
       "mozzarella",
       "paneer",
-      "custard"
+      "custard",
+      "cheddar",
+      "brie",
+      "ricotta",
+      "pesto"
     ],
     "exceptions": [
       "coconut milk",
@@ -81,7 +86,12 @@
       "semolina",
       "spaghetti",
       "soy sauce",
-      "breadcrumb"
+      "breadcrumb",
+      "gnocchi",
+      "bulgur",
+      "sourdough",
+      "bagel",
+      "naan"
     ],
     "exceptions": [
       "rice flour",
@@ -111,7 +121,12 @@
       "tortilla",
       "spaghetti",
       "soy sauce",
-      "breadcrumb"
+      "breadcrumb",
+      "gnocchi",
+      "bulgur",
+      "sourdough",
+      "bagel",
+      "naan"
     ],
     "exceptions": [
       "rice flour",
@@ -132,7 +147,8 @@
       "tofu",
       "edamame",
       "tempeh",
-      "miso"
+      "miso",
+      "hoisin"
     ],
     "exceptions": []
   },
@@ -148,7 +164,10 @@
       "cod",
       "trout",
       "barramundi",
-      "worcestershire"
+      "worcestershire",
+      "snapper",
+      "basa",
+      "mackerel"
     ],
     "exceptions": []
   },
@@ -171,7 +190,8 @@
     "name": "Sesame",
     "aliases": [
       "sesame",
-      "tahini"
+      "tahini",
+      "hummus"
     ],
     "exceptions": []
   },
