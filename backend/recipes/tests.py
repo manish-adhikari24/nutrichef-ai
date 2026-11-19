@@ -1,11 +1,13 @@
 # Automated tests for recipes, profile, nutrition, allergies, saved recipes, tracking, errors and the recipe chat.
 # Run with: python manage.py test recipes
 import json
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -538,3 +540,47 @@ class ReferenceDataTests(Base):
         options = lambda diet: [o['name'] for s in suggest_substitutions([{'name': 'Feta', 'missing': True}], [], diet) for o in s['options']]
         self.assertEqual(options('No specific diet'), ['Firm tofu', 'Halloumi'])
         self.assertEqual(options('Vegan'), ['Firm tofu'])
+
+
+# FR-16: the Wellness page.
+class WellnessTests(Base):
+    # Tips fit the goal and the time of day, at most 3, and follow the Settings switch.
+    def test_tips_match_goal_time_and_settings(self):
+        from datetime import datetime
+
+        from recipes.services.suggestions import wellness_tips
+
+        profile = self.user.profile
+        evening = timezone.make_aware(datetime(2026, 11, 19, 19, 0))
+        morning = timezone.make_aware(datetime(2026, 11, 19, 8, 0))
+        evening_titles = [t['title'] for t in wellness_tips(profile, 0, now=evening)]
+        self.assertLessEqual(len(evening_titles), 3)
+        self.assertIn('Wind down before bed', evening_titles)
+        self.assertNotIn('Start with a stretch', evening_titles)
+        self.assertIn('Start with a stretch', [t['title'] for t in wellness_tips(profile, 0, now=morning)])
+        self.assertNotIn('Plan your strength sessions', evening_titles)
+        self.client.put('/api/profile', {**PROFILE, 'showWellness': False}, format='json')
+        data = self.client.get('/api/wellness').data
+        self.assertEqual(data['tips'], [])
+        self.assertFalse(data['tipsOn'])
+
+    # Today, the 7 days and the insights come from the meal and water logs.
+    def test_week_and_insights(self):
+        from recipes.models import ConsumedMeal, WaterLog
+
+        today = timezone.localdate()
+        for offset in (0, 1, 2, 4):
+            ConsumedMeal.objects.create(user=self.user, title='Bowl', meal_type='Dinner', date=today - timedelta(days=offset),
+                                        calories=1880, protein_g=120, carbs_g=200, fat_g=60)
+        WaterLog.objects.create(user=self.user, date=today, glasses=8)
+        data = self.client.get('/api/wellness').data
+        self.assertEqual(len(data['days']), 7)
+        self.assertEqual(data['today']['kcal'], 1880)
+        self.assertEqual(data['today']['water'], 8)
+        insights = {i['key']: i['value'] for i in data['insights']}
+        self.assertEqual(insights['logged'], '4 of 7')
+        self.assertEqual(insights['streak'], '3 days')
+        self.assertEqual(insights['calories'], '1,880 kcal')
+        self.assertEqual(insights['protein'], '4 of 4 days')
+        self.assertEqual(insights['water'], '1.1 glasses')
+        self.assertTrue(all('consult' in t['disclaimer'] or 'not medical' in t['disclaimer'] for t in data['tips']))

@@ -24,4 +24,6 @@ urlpatterns = [
     path('water', views.WaterView.as_view()),
     # Daily totals, recent recipes and wellness tip for the dashboard home page.
     path('dashboard', views.DashboardView.as_view()),
+    # The Wellness page: today, matched tips and weekly insights.
+    path('wellness', views.WellnessView.as_view()),
 ]

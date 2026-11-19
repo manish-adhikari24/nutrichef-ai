@@ -101,6 +101,7 @@ class ActivityGuidanceRule(models.Model):
     goal_type = models.CharField(max_length=24, blank=True)  # blank matches every goal
     bmi_category = models.CharField(max_length=16, blank=True)  # blank matches every category
     calories_remaining = models.BooleanField(default=False)
+    time_of_day = models.CharField(max_length=10, blank=True)  # morning, afternoon or evening; blank matches any time
     priority = models.PositiveSmallIntegerField(default=10)  # lower numbers are checked first
     title = models.CharField(max_length=80)
     text = models.TextField()

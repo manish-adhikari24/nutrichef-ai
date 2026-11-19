@@ -3,6 +3,7 @@
     "goal": "",
     "bmi_category": "underweight",
     "calories_remaining": false,
+    "time_of_day": "",
     "priority": 1,
     "title": "Keep energy steady",
     "text": "Regular meals and gentle movement you enjoy, such as walking or stretching, can be a good fit. A health professional can give you advice for your situation."
@@ -11,7 +12,8 @@
     "goal": "weight_loss",
     "bmi_category": "",
     "calories_remaining": true,
-    "priority": 5,
+    "time_of_day": "evening",
+    "priority": 4,
     "title": "A walk after dinner",
     "text": "A relaxed 20 to 30 minute walk is an easy way to add some movement to your day."
   },
@@ -19,32 +21,162 @@
     "goal": "weight_loss",
     "bmi_category": "",
     "calories_remaining": false,
+    "time_of_day": "",
     "priority": 6,
     "title": "Small, regular movement",
     "text": "Short walks spread through the day can add up. Choose a pace where you can still hold a conversation."
   },
   {
+    "goal": "weight_loss",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 7,
+    "title": "Fill up on vegetables",
+    "text": "Vegetables add volume to a meal for few calories, which can help it feel more filling."
+  },
+  {
     "goal": "muscle_gain",
     "bmi_category": "",
     "calories_remaining": false,
+    "time_of_day": "",
     "priority": 5,
     "title": "Plan your strength sessions",
     "text": "Two or three strength sessions a week with rest days between them is a common starting point."
   },
   {
+    "goal": "muscle_gain",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 6,
+    "title": "Spread your protein",
+    "text": "Having some protein at each meal, rather than most of it at dinner, is a common habit among people building strength."
+  },
+  {
+    "goal": "muscle_gain",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "evening",
+    "priority": 4,
+    "title": "Rest and recover",
+    "text": "Sleep and rest days are part of training. Most adults feel best with 7 to 9 hours of sleep."
+  },
+  {
     "goal": "athletic_performance",
     "bmi_category": "",
     "calories_remaining": false,
+    "time_of_day": "",
     "priority": 5,
     "title": "Fuel around training",
     "text": "Having a meal with carbs and protein within a few hours of training is a common habit among active people."
   },
   {
+    "goal": "athletic_performance",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 6,
+    "title": "Drink around exercise",
+    "text": "Sipping water before, during and after longer sessions helps you stay comfortable."
+  },
+  {
+    "goal": "athletic_performance",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "morning",
+    "priority": 4,
+    "title": "Warm up first",
+    "text": "A few minutes of easy movement before training helps your body get ready."
+  },
+  {
     "goal": "maintenance",
     "bmi_category": "",
     "calories_remaining": false,
+    "time_of_day": "",
     "priority": 5,
     "title": "Stay active most days",
     "text": "Aim for regular movement you enjoy, such as walking, cycling or swimming."
+  },
+  {
+    "goal": "maintenance",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 7,
+    "title": "Try something new",
+    "text": "Mixing up activities, like a bike ride, a swim or a dance class, can keep moving fun."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "morning",
+    "priority": 8,
+    "title": "Start with a stretch",
+    "text": "A few minutes of gentle stretching in the morning can help you feel loose and ready for the day."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "morning",
+    "priority": 9,
+    "title": "Protein at breakfast",
+    "text": "Eggs, yoghurt or beans at breakfast can help keep you full until lunch."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "afternoon",
+    "priority": 8,
+    "title": "Stand up and move",
+    "text": "If you've been sitting for a while, a short walk or a few minutes on your feet makes a nice break."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": true,
+    "time_of_day": "afternoon",
+    "priority": 9,
+    "title": "Plan a balanced dinner",
+    "text": "You still have room in today's target. Vegetables, a protein and some whole grains make an easy, balanced plate."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "evening",
+    "priority": 8,
+    "title": "Wind down before bed",
+    "text": "A regular bedtime and some screen-free time before sleep help many people rest better."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 12,
+    "title": "Drink water through the day",
+    "text": "Keep a glass or bottle nearby and sip regularly. Thirst is a good guide for most people."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 13,
+    "title": "Add colour to your plate",
+    "text": "Adding a vegetable or a piece of fruit to each meal is a simple way to eat a wider mix of foods."
+  },
+  {
+    "goal": "",
+    "bmi_category": "",
+    "calories_remaining": false,
+    "time_of_day": "",
+    "priority": 14,
+    "title": "Eat without screens",
+    "text": "Slowing down and eating away from screens can make it easier to notice when you're comfortably full."
   }
 ]

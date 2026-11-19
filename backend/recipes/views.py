@@ -39,11 +39,19 @@ from .services.allergens import find_allergens
 from .services.nutrition import (
     assess_recipe,
     calculate_nutrition,
+    daily_targets,
     meal_targets,
     normalize_ingredients,
     nutrition_looks_wrong,
 )
-from .services.suggestions import suggest_substitutions, suggest_supplements, suggest_wellness
+from .services.suggestions import (
+    WELLNESS_DISCLAIMER,
+    suggest_substitutions,
+    suggest_supplements,
+    suggest_wellness,
+    weekly_insights,
+    wellness_tips,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +61,8 @@ PAGE_SIZE = 6
 RECENT_SIZE = 10
 # Chat messages a cook can send about one recipe.
 CHAT_LIMIT = 10
+# Daily water goal in glasses (also shown on the dashboard).
+WATER_GOAL = 8
 # Rotates through the sample recipes.
 SAMPLE_CYCLE = itertools.count()
 
@@ -639,4 +649,31 @@ class DashboardView(APIView):
                 for item in recent
             ],
             'wellness': suggest_wellness(user.profile, totals['kcal']),
+        })
+
+
+# GET /api/wellness: the Wellness page (FR-16): today at a glance, up to 3 matched tips, and the last 7 days.
+class WellnessView(APIView):
+    def get(self, request):
+        user = request.user
+        profile = user.profile
+        today = timezone.localdate()
+        dates = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+        meals = list(ConsumedMeal.objects.filter(user=user, date__gte=dates[0]))
+        water = dict(WaterLog.objects.filter(user=user, date__gte=dates[0]).values_list('date', 'glasses'))
+        # One row per day, oldest first: nutrition totals, meals logged and glasses of water.
+        days = []
+        for day in dates:
+            eaten = [m for m in meals if m.date == day]
+            days.append({'date': day.isoformat(), **totals_of(eaten), 'meals': len(eaten), 'water': water.get(day, 0)})
+        targets = daily_targets(profile)
+        return Response({
+            'today': days[-1],
+            'targets': targets,
+            'waterGoal': WATER_GOAL,
+            'tipsOn': profile.show_wellness,
+            'tips': wellness_tips(profile, days[-1]['kcal']),
+            'disclaimer': WELLNESS_DISCLAIMER,
+            'days': days,
+            'insights': weekly_insights(days, targets, WATER_GOAL),
         })

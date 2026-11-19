@@ -81,7 +81,7 @@ def load_seed():
     ActivityGuidanceRule.objects.bulk_create([
         ActivityGuidanceRule(
             goal_type=row['goal'], bmi_category=row['bmi_category'], calories_remaining=row['calories_remaining'],
-            priority=row['priority'], title=row['title'], text=row['text'],
+            time_of_day=row.get('time_of_day', ''), priority=row['priority'], title=row['title'], text=row['text'],
         )
         for row in read('wellness.json')
     ])

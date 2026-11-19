@@ -251,6 +251,8 @@ export const deleteSaved = (id) => request(`saved/${id}`, { method: 'DELETE' });
 
 // Dashboard data, the meal log, logging and removing meals, and the water count.
 export const getDashboard = () => request('dashboard');
+// The Wellness page: today, matched tips and the last 7 days.
+export const getWellness = () => request('wellness');
 export const getLog = () => request('log');
 export const logMeal = (recipeId) => request('log', { method: 'POST', body: { recipeId } });
 export const removeLogged = (id) => request(`log/${id}`, { method: 'DELETE' });
