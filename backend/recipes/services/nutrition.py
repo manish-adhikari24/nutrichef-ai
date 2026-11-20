@@ -25,12 +25,30 @@ def normalize_ingredients(raw_names):
     return seen
 
 
+# Words showing an ingredient is weighed before cooking, e.g. "White rice (uncooked)" or "dry pasta".
+_UNCOOKED = re.compile(r'\b(uncooked|dry|dried|raw)\b')
+# Prefixes the dataset uses for those uncooked and dry entries.
+_DRY_PREFIX = re.compile(r'^(uncooked|dry|dried) ')
+
+
 def _lookup(name, items):
-    """Finds the longest dataset name contained in the ingredient name."""
+    """Finds the longest dataset name contained in the ingredient name.
+
+    Grains and legumes are listed cooked (e.g. "rice" is 130 kcal per 100 g). When the ingredient
+    is described as uncooked or dry, the matching dry entry is used instead ("uncooked rice",
+    365 kcal per 100 g), so dry weights aren't counted at the much lower cooked value.
+    """
     text = name.lower()
     # Whole-word matches, plural "s"/"es" allowed. The longest match is the most specific.
     matches = [key for key in items if re.search(rf'\b{re.escape(key)}(s|es)?\b', text)]
-    return items[max(matches, key=len)] if matches else None
+    if not matches:
+        return None
+    best = max(matches, key=len)
+    if _UNCOOKED.search(text) and not _DRY_PREFIX.match(best):
+        dry = {_DRY_PREFIX.sub('', key): key for key in items if _DRY_PREFIX.match(key)}
+        if best in dry:
+            return items[dry[best]]
+    return items[best]
 
 
 def calculate_nutrition(recipe):

@@ -4,6 +4,7 @@ import json
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.test import override_settings
@@ -611,3 +612,40 @@ class RecipeTextTests(Base):
         # Ingredient amounts in the steps are left alone.
         self.assertEqual(saved['steps'], ['Cook 300 g of chicken.'])
         self.assertEqual(saved['nutrition'], {'kcal': 699, 'protein': 83, 'carbs': 42, 'fat': 22})
+
+
+# QA fixes: the hourly limit counts only AI recipes, and uncooked grains use dry values.
+class QaFixTests(Base):
+    # Refused requests (bad input, allergy conflicts) never use up the allowance.
+    @patch('recipes.services.ai.write_recipe', return_value=ai_recipe())
+    def test_limit_counts_only_ai_recipes(self, write):
+        rates = {**settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'], 'generate': '2/hour'}
+        with override_settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, 'DEFAULT_THROTTLE_RATES': rates}):
+            for _ in range(5):
+                blocked = self.client.post('/api/recipes/generate', {'ingredients': ['tofu']}, format='json')
+                self.assertEqual(blocked.status_code, 422)
+                self.assertEqual(self.client.post('/api/recipes/generate', {'ingredients': []}, format='json').status_code, 400)
+            body = {'ingredients': ['Chicken breast']}
+            self.assertEqual(self.client.post('/api/recipes/generate', body, format='json').status_code, 201)
+            self.assertEqual(self.client.post('/api/recipes/generate', body, format='json').status_code, 201)
+            limited = self.client.post('/api/recipes/generate', body, format='json')
+            self.assertEqual(limited.status_code, 429)
+            self.assertIn('hourly recipe limit', limited.data['error'])
+            self.assertEqual(write.call_count, 2)
+
+    # "White rice (uncooked)" uses the dry value, not the much lower cooked one.
+    def test_uncooked_rice_uses_dry_values(self):
+        recipe = ai_recipe('Long-grain white rice (uncooked)', servings=1, ingredients=[
+            {'name': 'Long-grain white rice (uncooked)', 'amount': '100 g', 'missing': False, 'grams': 100, 'kcal': 360, 'protein': 7, 'carbs': 80, 'fat': 1},
+        ])
+        nutrition, source = calculate_nutrition(recipe)
+        self.assertEqual((nutrition['kcal'], nutrition['carbs'], source), (365, 80, 'calculated'))
+        cooked = ai_recipe(servings=1, ingredients=[
+            {'name': 'Cooked white rice', 'amount': '100 g', 'missing': False, 'grams': 100, 'kcal': 130, 'protein': 3, 'carbs': 28, 'fat': 0},
+        ])
+        self.assertEqual(calculate_nutrition(cooked)[0]['kcal'], 130)
+        dry_pasta = ai_recipe(servings=1, ingredients=[
+            {'name': 'Penne pasta, dry', 'amount': '100 g', 'missing': False, 'grams': 100, 'kcal': 999, 'protein': 13, 'carbs': 75, 'fat': 2},
+        ])
+        # 371 is the dataset's dry pasta value (the AI's own 999 is ignored); cooked pasta would be 158.
+        self.assertEqual(calculate_nutrition(dry_pasta)[0]['kcal'], 371)

@@ -123,7 +123,7 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'nutrichef.exceptions.api_exception_handler',
     # Per-user limits on the AI endpoints, to control cost.
     'DEFAULT_THROTTLE_RATES': {
-        'generate': os.environ.get('GENERATE_RATE', '10/hour'),
+        'generate': os.environ.get('GENERATE_RATE', '30/hour'),
         'chat': os.environ.get('CHAT_RATE', '30/hour'),
     },
 }

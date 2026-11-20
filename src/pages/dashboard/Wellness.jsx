@@ -3,8 +3,10 @@
 import { Link } from 'react-router-dom';
 import { Drop, Fire, ForkKnife, Lightbulb, Minus, Plus, BowlFood, Warning } from '@phosphor-icons/react';
 import LoadStatus from '../../components/LoadStatus.jsx';
-import { getWellness, setWater } from '../../lib/api.js';
+import { getWellness } from '../../lib/api.js';
+import { useCallback } from 'react';
 import { useLoad } from '../../lib/useLoad.js';
+import { useWaterCounter } from '../../lib/useWaterCounter.js';
 
 const fmt = (n) => n.toLocaleString('en-US');
 
@@ -16,6 +18,13 @@ function dayName(date, isToday) {
 
 export default function Wellness() {
   const { data, setData, error, loading, reload } = useLoad(getWellness);
+  // Water taps: never lost, saved in order (see lib/useWaterCounter.js). Updates today's card and chart bar.
+  const showWater = useCallback((glasses) => setData((d) => ({
+    ...d,
+    today: { ...d.today, water: glasses },
+    days: d.days.map((day, i) => (i === d.days.length - 1 ? { ...day, water: glasses } : day)),
+  })), [setData]);
+  const changeWater = useWaterCounter(showWater, reload);
 
   if (!data) {
     return (
@@ -27,22 +36,6 @@ export default function Wellness() {
   }
 
   const { today, targets, waterGoal, tips, tipsOn, disclaimer, days, insights } = data;
-
-  // Update the water count straight away, then save it. Undo if saving fails.
-  async function changeWater(amount) {
-    const glasses = Math.max(0, today.water + amount);
-    const withWater = (d, value) => ({
-      ...d,
-      today: { ...d.today, water: value },
-      days: d.days.map((day, i) => (i === d.days.length - 1 ? { ...day, water: value } : day)),
-    });
-    setData((d) => withWater(d, glasses));
-    try {
-      await setWater(glasses);
-    } catch {
-      setData((d) => withWater(d, today.water));
-    }
-  }
 
   // The water chart's top value: the goal or the highest day, whichever is bigger.
   const waterMax = Math.max(waterGoal, ...days.map((d) => d.water));
@@ -85,9 +78,9 @@ export default function Wellness() {
             <b>{today.water}</b>
             <span>Glasses of water</span>
             <div className="water-controls">
-              <button type="button" className="icon-btn" onClick={() => changeWater(-1)} disabled={today.water === 0} aria-label="Remove a glass of water"><Minus size={18} aria-hidden /></button>
+              <button type="button" className="icon-btn" onClick={() => changeWater(-1, today.water)} disabled={today.water === 0} aria-label="Remove a glass of water"><Minus size={18} aria-hidden /></button>
               <small role="status">{today.water >= waterGoal ? 'Goal reached' : `${waterGoal - today.water} more to go`}</small>
-              <button type="button" className="icon-btn" onClick={() => changeWater(1)} aria-label="Add a glass of water"><Plus size={18} aria-hidden /></button>
+              <button type="button" className="icon-btn" onClick={() => changeWater(1, today.water)} aria-label="Add a glass of water"><Plus size={18} aria-hidden /></button>
             </div>
           </li>
         </ul>

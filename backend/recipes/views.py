@@ -34,7 +34,7 @@ from .models import (
     WaterLog,
 )
 from .reference import DbChoiceField, choices, meal_types, prep_minutes
-from .services import ai, chat
+from .services import ai, chat, generation_limit
 from .services.allergens import find_allergens
 from .services.nutrition import (
     assess_recipe,
@@ -233,13 +233,19 @@ class BaseGenerateView(APIView):
 
 # POST /api/recipes/generate: write a recipe with Claude, limited to 10 an hour per user.
 class GenerateRecipeView(BaseGenerateView):
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'generate'
-
     def post(self, request):
+        # Input and allergy checks come first and are free: they never use up the hourly allowance.
         data, allergies, error = self.prepare(request)
         if error:
             return error
+        # Only recipes the AI actually wrote count towards the limit (see services/generation_limit.py).
+        wait = generation_limit.wait_seconds(request.user)
+        if wait:
+            minutes = max(1, round(wait / 60))
+            return Response(
+                {'code': 'rate_limited', 'error': f"You've reached the hourly recipe limit. Try again in about {minutes} {'minute' if minutes == 1 else 'minutes'}."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         # What gets sent to the AI. With no consent, only the form's cooking choices go.
         ai_request = dict(data)
@@ -269,6 +275,8 @@ class GenerateRecipeView(BaseGenerateView):
             return Response({'code': 'ai_unavailable', 'error': 'The recipe came back incomplete. Generate it again.'}, status=status.HTTP_502_BAD_GATEWAY)
         except ai.Unavailable:
             return Response({'code': 'ai_unavailable', 'error': "The recipe couldn't be generated right now. Try again in a moment."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # The AI wrote a recipe, so it counts, even if the final allergy check then blocks it.
+        generation_limit.record(request.user)
         return self.finish(request, data, recipe, 'ai', allergies)
 
 

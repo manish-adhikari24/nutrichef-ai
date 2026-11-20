@@ -14,9 +14,11 @@ import {
 } from '@phosphor-icons/react';
 import LoadStatus from '../../components/LoadStatus.jsx';
 import WellnessCard from '../../components/WellnessCard.jsx';
-import { getDashboard, setWater } from '../../lib/api.js';
+import { getDashboard } from '../../lib/api.js';
 import { dailyTargets, intakeStatus } from '../../lib/nutrition.js';
 import { useLoad } from '../../lib/useLoad.js';
+import { useWaterCounter } from '../../lib/useWaterCounter.js';
+import { useCallback } from 'react';
 
 // Daily water goal in glasses.
 const WATER_GOAL = 8;
@@ -68,6 +70,9 @@ export default function Dashboard() {
   const { data, setData, error, loading, reload } = useLoad(getDashboard);
   // Daily targets from the profile, or null if not set.
   const targets = dailyTargets(profile);
+  // Water taps: never lost, saved in order (see lib/useWaterCounter.js).
+  const showWater = useCallback((glasses) => setData((d) => ({ ...d, water: glasses })), [setData]);
+  const changeWater = useWaterCounter(showWater, reload);
   const dateText = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   // Title row, shown while loading and after.
@@ -93,16 +98,6 @@ export default function Dashboard() {
 
   const { totals, water, generatedToday, recent, wellness } = data;
 
-  // Update the water count straight away, then save it. Undo if saving fails.
-  async function changeWater(amount) {
-    const glasses = Math.max(0, water + amount);
-    setData({ ...data, water: glasses });
-    try {
-      await setWater(glasses);
-    } catch {
-      setData({ ...data, water });
-    }
-  }
 
   // The summary cards.
   const cards = [
@@ -137,9 +132,9 @@ export default function Dashboard() {
           <b>{water}</b>
           <span>Glasses of water</span>
           <div className="water-controls">
-            <button type="button" className="icon-btn" onClick={() => changeWater(-1)} disabled={water === 0} aria-label="Remove a glass of water"><Minus size={18} aria-hidden /></button>
+            <button type="button" className="icon-btn" onClick={() => changeWater(-1, water)} disabled={water === 0} aria-label="Remove a glass of water"><Minus size={18} aria-hidden /></button>
             <small role="status">{water >= WATER_GOAL ? 'Goal reached' : `${WATER_GOAL - water} more to go`}</small>
-            <button type="button" className="icon-btn" onClick={() => changeWater(1)} aria-label="Add a glass of water"><Plus size={18} aria-hidden /></button>
+            <button type="button" className="icon-btn" onClick={() => changeWater(1, water)} aria-label="Add a glass of water"><Plus size={18} aria-hidden /></button>
           </div>
         </li>
       </ul>

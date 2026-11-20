@@ -144,9 +144,10 @@ export default function RecipeCard({ recipe, onSwap, swapping = null, swapDisabl
               </li>
             ))}
           </ul>
-          {swapStatus && <p className={`subs-status${swapStatus.ok ? ' is-ok' : ''}`} role="status">{swapStatus.text}</p>}
         </section>
       )}
+      {/* The result of a swap. Outside the section above, because that disappears when no swaps are left. */}
+      {swapStatus && <p className={`subs-status${swapStatus.ok ? ' is-ok' : ''}`} role="status">{swapStatus.text}</p>}
 
       {/* Why it fits, and labels to check on packaged foods. */}
       <p className="recipe-why"><b>Why this suits you:</b> {recipe.why_it_fits}</p>
