@@ -39,7 +39,18 @@ function setTokens({ access, refresh, deviceToken }) {
 }
 
 // Sign out on this browser. The device token stays, so "Keep me signed in" still skips the code.
+// The refresh token is also revoked on the server, so a copy of it can't be used again.
 export function logout() {
+  const refresh = getToken(REFRESH);
+  if (refresh) {
+    // Fire and forget: keepalive lets the request finish even as the page changes.
+    fetch(`${BASE}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh }),
+      keepalive: true,
+    }).catch(() => {});
+  }
   try {
     localStorage.removeItem(ACCESS);
     localStorage.removeItem(REFRESH);

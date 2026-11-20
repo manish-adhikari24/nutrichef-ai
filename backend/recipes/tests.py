@@ -460,9 +460,9 @@ class ChatTests(Base):
     # Users can't open, chat about or delete other people's recipes, or see them in their list.
     def test_other_peoples_recipes_are_forbidden(self):
         other = self.make_recipe(user=self.other_client_user())
-        self.assertEqual(self.chat(other).status_code, 403)
-        self.assertEqual(self.client.get(f'/api/recipes/{other.id}').status_code, 403)
-        self.assertEqual(self.client.delete(f'/api/recipes/{other.id}').status_code, 403)
+        self.assertEqual(self.chat(other).status_code, 404)
+        self.assertEqual(self.client.get(f'/api/recipes/{other.id}').status_code, 404)
+        self.assertEqual(self.client.delete(f'/api/recipes/{other.id}').status_code, 404)
         self.assertEqual(self.client.get('/api/recipes/recent').data['results'], [])
 
     # Messages must be 1 to 500 characters.
@@ -649,3 +649,31 @@ class QaFixTests(Base):
         ])
         # 371 is the dataset's dry pasta value (the AI's own 999 is ignored); cooked pasta would be 158.
         self.assertEqual(calculate_nutrition(dry_pasta)[0]['kcal'], 371)
+
+
+# QA medium and low items.
+class QaPolishTests(Base):
+    # Plain-English validation messages instead of Django's defaults.
+    def test_friendly_validation_messages(self):
+        response = self.client.put('/api/profile', {**PROFILE, 'weightKg': '62.55'}, format='json')
+        self.assertEqual(response.data['error'], 'Use at most 1 decimal place.')
+        self.assertEqual(self.client.put('/api/profile', {**PROFILE, 'age': 5}, format='json').data['error'], 'Enter 13 or more.')
+        self.assertEqual(self.client.put('/api/profile', {**PROFILE, 'dislikes': 'x' * 301}, format='json').data['fields']['dislikes'], 'Use 300 characters or fewer.')
+        self.assertEqual(self.client.put('/api/profile', {**PROFILE, 'diet': 'Carnivore'}, format='json').data['error'], 'Choose one of the options.')
+
+    # Unknown /api/ addresses answer in JSON.
+    def test_unknown_api_path_is_json(self):
+        response = self.client.get('/api/does-not-exist')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(), {'error': 'We could not find that.'})
+
+    # Favourites search forgives small typos.
+    def test_favourites_search_forgives_typos(self):
+        recipe = GeneratedRecipe.objects.create(
+            user=self.user, title='Broccoli rice bowl', meal_type='Dinner', difficulty='Easy', cooking_time=20, servings=2,
+            calories=500, protein_g=30, carbs_g=50, fat_g=18, nutrition_source='calculated',
+            content={'description': '', 'ingredients': [{'name': 'Broccoli', 'amount': '1', 'missing': False}], 'steps': ['Cook.'], 'why_it_fits': '', 'label_checks': [], 'constraint_warning': ''},
+        )
+        self.client.post('/api/saved', {'recipeId': recipe.id}, format='json')
+        self.assertEqual(self.client.get('/api/saved?q=brocoli').data['count'], 1)
+        self.assertEqual(self.client.get('/api/saved?q=salmon').data['count'], 0)

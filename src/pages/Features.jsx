@@ -83,7 +83,7 @@ export default function Features() {
       <div className="wrap">
         <div className="banner-photo">
           <img
-            src={img('produce-grid.jpg')}
+            src={img('produce-grid.webp')}
             alt="Rows of bowls filled with fresh vegetables, grains, beans and herbs"
             loading="lazy"
             width="1600"

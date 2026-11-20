@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import security
@@ -199,6 +200,17 @@ class ResetPasswordView(PublicView):
             user.save(update_fields=['password', 'password_changed_at', 'email_verified'])
             TrustedDevice.objects.filter(user=user).delete()
         return Response({'status': 'reset'})
+
+
+# POST /api/auth/logout: revokes the browser's refresh token, so it can't get new access tokens.
+# Always answers 204, even for a missing or already-revoked token, so logging out never fails.
+class LogoutView(PublicView):
+    def post(self, request):
+        try:
+            RefreshToken(str(request.data.get('refresh', ''))).blacklist()
+        except TokenError:
+            pass
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # DELETE /api/auth/devices: forget every "Keep me signed in" device (Settings page).

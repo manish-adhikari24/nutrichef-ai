@@ -94,6 +94,15 @@ export default function DashboardLayout() {
     setGeneration({ request, promise });
   }, [reloadRecent]);
 
+  // Signed out in another tab: this tab follows straight away, so it doesn't keep showing account data.
+  useEffect(() => {
+    function onStorage(event) {
+      if ((event.key === 'nc-access' || event.key === null) && !isSignedIn()) navigate('/login', { replace: true });
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [navigate]);
+
   // Not signed in: go to login, remembering which page they wanted.
   if (!isSignedIn()) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 

@@ -52,7 +52,7 @@ export default function SavedRecipes() {
     setPendingDelete(null);
     try {
       await deleteSaved(id);
-      setMessage(`Deleted ${recipe.title}.`);
+      setMessage(`Removed ${recipe.title} from favourites.`);
       reload();
     } catch (err) {
       setMessage(err.message);
@@ -152,7 +152,7 @@ export default function SavedRecipes() {
                           {open ? <CaretUp size={16} aria-hidden /> : <CaretDown size={16} aria-hidden />}
                           {open ? 'Hide details' : 'View details'}
                         </button>
-                        <button type="button" className="icon-btn" onClick={() => setPendingDelete(item)} aria-label={`Delete ${recipe.title}`}>
+                        <button type="button" className="icon-btn" onClick={() => setPendingDelete(item)} aria-label={`Remove ${recipe.title} from favourites`}>
                           <Trash size={20} aria-hidden />
                         </button>
                       </div>
@@ -175,13 +175,13 @@ export default function SavedRecipes() {
         </>
       )}
 
-      {/* Delete confirmation dialog. */}
+      {/* Remove-from-favourites confirmation dialog. */}
       <dialog ref={dialogRef} className="confirm-dialog" aria-labelledby="delete-title" onClose={() => setPendingDelete(null)}>
-        <h2 id="delete-title" className="dash-h2">Delete this recipe?</h2>
+        <h2 id="delete-title" className="dash-h2">Remove from favourites?</h2>
         <p>{pendingDelete?.recipe.title} will be removed from your favourites. It stays in Recent recipes.</p>
         <div className="confirm-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => setPendingDelete(null)}>Keep recipe</button>
-          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Delete recipe</button>
+          <button type="button" className="btn btn-ghost" onClick={() => setPendingDelete(null)}>Keep it</button>
+          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Remove</button>
         </div>
       </dialog>
     </>

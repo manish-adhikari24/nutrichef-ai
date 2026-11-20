@@ -20,6 +20,8 @@ urlpatterns = [
     path('auth/password/reset', views.ResetPasswordView.as_view()),
     # Swap a refresh token for a new access token.
     path('auth/refresh', PasswordAwareRefreshView.as_view()),
+    # Log out: revoke the refresh token.
+    path('auth/logout', views.LogoutView.as_view()),
     # Forget every "Keep me signed in" device.
     path('auth/devices', views.TrustedDevicesView.as_view()),
     # Read or update the profile and goals.

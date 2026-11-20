@@ -74,7 +74,9 @@ export default function App() {
   // On every route change: reset scroll, update the title, move focus to the new page.
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = TITLES[pathname] ?? (pathname.startsWith('/dashboard/recipe/') ? 'Recipe | NutriChef AI' : 'Page not found | NutriChef AI');
+    // Match the way the router does: any letter case, with or without a trailing slash.
+    const path = pathname.length > 1 ? pathname.toLowerCase().replace(/\/+$/, '') : pathname;
+    document.title = TITLES[path] ?? (path.startsWith('/dashboard/recipe/') ? 'Recipe | NutriChef AI' : 'Page not found | NutriChef AI');
     if (firstRender.current) {
       firstRender.current = false;
       return;

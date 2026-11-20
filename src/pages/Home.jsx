@@ -150,7 +150,7 @@ export default function Home() {
         <div className="wrap spread-grid">
           <div className="spread-photo">
             <img
-              src={img('table-spread.jpg')}
+              src={img('table-spread.webp')}
               alt="A wooden table set with a bowl of eggs, greens, avocado and radish"
               loading="lazy"
               width="1400"

@@ -269,6 +269,7 @@
 .login-link {
   color: var(--ink);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .menu-btn {

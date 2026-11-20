@@ -228,8 +228,8 @@ export default function Profile() {
               {reference.diets.map((d) => <option key={d}>{d}</option>)}
             </select>
           </Field>
-          <Field id="p-dislikes" label="Foods you dislike">
-            <input id="p-dislikes" type="text" {...bind('dislikes')} />
+          <Field id="p-dislikes" label="Foods you dislike" error={errors.dislikes}>
+            <input id="p-dislikes" type="text" maxLength={300} {...bind('dislikes')} />
           </Field>
 
           {/* Allergies (FR-03, used by the allergy checks in FR-06): a search box with a dropdown, and tags below. */}

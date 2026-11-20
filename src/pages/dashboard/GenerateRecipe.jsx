@@ -139,7 +139,7 @@ export default function GenerateRecipe() {
           {conflicts.length > 0 && (
             <div className="allergy-alert" role="alert">
               <Warning size={22} weight="fill" aria-hidden />
-              <p><b>Allergy conflict.</b> Your ingredients include {conflicts.join(', ')}. Remove it to generate a recipe.</p>
+              <p><b>Allergy conflict.</b> Your ingredients include {conflicts.join(', ')}. Remove {conflicts.length > 1 ? 'them' : 'it'} to generate a recipe.</p>
             </div>
           )}
         </section>

@@ -1,6 +1,7 @@
 """Token refresh that refuses tokens issued before a password reset. Kept apart from
 authentication.py to avoid a circular import through Simple JWT's views."""
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -11,8 +12,11 @@ from .models import User
 
 class PasswordAwareRefreshSerializer(TokenRefreshSerializer):
     def validate(self, attrs):
-        # Find who the refresh token belongs to.
-        token = RefreshToken(attrs['refresh'])
+        # Find who the refresh token belongs to. A broken, expired or revoked (logged-out) token is refused.
+        try:
+            token = RefreshToken(attrs['refresh'])
+        except TokenError as error:
+            raise InvalidToken('Please sign in again.') from error
         user = User.objects.filter(pk=token.get('user_id')).first()
         # Refuse it if the account was deleted or the password changed since it was issued.
         if user is None or issued_before_password_change(user, token):

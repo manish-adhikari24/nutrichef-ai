@@ -1,5 +1,7 @@
 # API endpoints for recipe generation, the recipe chat, saved recipes, meal and water logs and the dashboard.
+import difflib
 import itertools
+import re
 import logging
 from datetime import timedelta
 
@@ -348,11 +350,8 @@ def message_payload(message):
 
 # Finds one of the signed-in user's recipes.
 def own_recipe(request, pk):
-    recipe = get_object_or_404(GeneratedRecipe, pk=pk)
-    # Users can only open their own recipes.
-    if recipe.user_id != request.user.id:
-        raise PermissionDenied
-    return recipe
+    # Someone else's recipe gives the same "not found" as a missing one, so recipe numbers can't be probed.
+    return get_object_or_404(GeneratedRecipe, pk=pk, user=request.user)
 
 
 # How many more chat messages the cook can send about this recipe.
@@ -470,6 +469,21 @@ def saved_payload(item, user):
     }
 
 
+# Ids of favourites with a word close to every searched word, e.g. "brocoli" -> "broccoli".
+def close_matches(items, search):
+    wanted = [w for w in re.findall(r'[a-z]+', search.lower()) if len(w) >= 3]
+    if not wanted:
+        return []
+    found = []
+    for item in items:
+        recipe = item.generated_recipe
+        text = ' '.join([recipe.title, *(i['name'] for i in recipe.content['ingredients'])]).lower()
+        words = set(re.findall(r'[a-z]+', text))
+        if all(difflib.get_close_matches(w, words, n=1, cutoff=0.8) for w in wanted):
+            found.append(item.id)
+    return found
+
+
 # GET and POST /api/saved: list saved recipes (FR-13) or save one (FR-12).
 class SavedListView(APIView):
     # Filter chips on the Saved Recipes page and the query for each.
@@ -492,9 +506,11 @@ class SavedListView(APIView):
         # Search titles and ingredients.
         search = request.query_params.get('q', '').strip()
         if search:
-            items = items.filter(
+            exact = items.filter(
                 Q(generated_recipe__title__icontains=search) | Q(generated_recipe__content__ingredients__icontains=search)
             )
+            # No exact match: try close spellings against the words in each title and ingredient list.
+            items = exact if exact.exists() else items.filter(id__in=close_matches(items, search))
         # Work out the number of pages (rounding up) and keep the page number in range.
         count = items.count()
         pages = max(1, -(-count // PAGE_SIZE))

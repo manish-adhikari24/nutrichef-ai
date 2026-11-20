@@ -21,7 +21,9 @@ const STEPS = [
 
 export default function RecipePage() {
   const { id } = useParams();
-  return id === 'new' ? <Generating /> : <RecipeView key={id} id={Number(id)} />;
+  if (id === 'new') return <Generating />;
+  // Recipe addresses are numbers; anything else can't be a recipe.
+  return /^\d+$/.test(id) ? <RecipeView key={id} id={Number(id)} /> : <RecipeMissing />;
 }
 
 // While the AI writes the recipe. Generation runs in DashboardLayout, so leaving this page doesn't stop it.
@@ -93,6 +95,16 @@ function Generating() {
   );
 }
 
+// Shown when the recipe doesn't exist, was deleted, or belongs to someone else.
+function RecipeMissing() {
+  return (
+    <div className="generate-error" role="alert">
+      <p>This recipe doesn&apos;t exist or was deleted.</p>
+      <p><Link to="/dashboard/generate" className="inline-link">Make a new recipe</Link> or <Link to="/dashboard/saved" className="inline-link">open your favourites</Link>.</p>
+    </div>
+  );
+}
+
 // A finished recipe with its actions and chat.
 function RecipeView({ id }) {
   const { reloadRecent } = useOutletContext();
@@ -106,6 +118,7 @@ function RecipeView({ id }) {
   const [logged, setLogged] = useState(false);
   const [message, setMessage] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
   const dialogRef = useRef(null);
 
   // Open or close the delete dialog to match `confirming`.
@@ -116,6 +129,8 @@ function RecipeView({ id }) {
     if (!confirming && dialog.open) dialog.close();
   }, [confirming]);
 
+  // Not found (deleted, or not this person's): no point offering "Try again".
+  if (!data && error?.status === 404) return <RecipeMissing />;
   if (!data) {
     return (
       <>
@@ -131,14 +146,23 @@ function RecipeView({ id }) {
 
   // Add to favourites with the optional note and rating.
   async function onSave() {
+    // Ignore a second click while the first save is still on its way.
+    if (saving) return;
+    setSaving(true);
     try {
       await saveRecipe(recipe.id, { note: note.trim(), rating });
       patch({ saved: true });
       setMessage('Added to favourites.');
     } catch (err) {
       // 409 means it was already a favourite.
-      if (err.status === 409) patch({ saved: true });
-      setMessage(err.message);
+      if (err.status === 409) {
+        patch({ saved: true });
+        setMessage('Added to favourites.');
+      } else {
+        setMessage(err.message);
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -212,7 +236,7 @@ function RecipeView({ id }) {
           </div>
         )}
         <div className="recipe-actions">
-          <button type="button" className="btn btn-primary" onClick={onSave} disabled={saved}>
+          <button type="button" className="btn btn-primary" onClick={onSave} disabled={saved || saving}>
             <Heart size={18} weight={saved ? 'fill' : 'regular'} aria-hidden />
             {saved ? 'In favourites' : 'Add to favourites'}
           </button>

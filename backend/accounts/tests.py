@@ -315,3 +315,19 @@ class PasswordRuleTests(TestCase):
     @patch('accounts.validators.urllib.request.urlopen', side_effect=OSError)
     def test_breach_service_outage_allows_the_password(self, _urlopen):
         validate_password(PASSWORD)
+
+
+# Logging out revokes the refresh token on the server.
+class LogoutTests(AuthTestCase):
+    def test_logout_revokes_refresh_token(self):
+        tokens = self.register_and_verify().data
+        self.assertEqual(self.client.post('/api/auth/refresh', {'refresh': tokens['refresh']}, format='json').status_code, 200)
+        self.assertEqual(self.client.post('/api/auth/logout', {'refresh': tokens['refresh']}, format='json').status_code, 204)
+        self.assertEqual(self.client.post('/api/auth/refresh', {'refresh': tokens['refresh']}, format='json').status_code, 401)
+        # Logging out twice, or with nothing, still succeeds.
+        self.assertEqual(self.client.post('/api/auth/logout', {'refresh': tokens['refresh']}, format='json').status_code, 204)
+        self.assertEqual(self.client.post('/api/auth/logout', {}, format='json').status_code, 204)
+
+    # A broken refresh token gets a clean 401, not a server error.
+    def test_broken_refresh_token_is_refused(self):
+        self.assertEqual(self.client.post('/api/auth/refresh', {'refresh': 'not-a-token'}, format='json').status_code, 401)
