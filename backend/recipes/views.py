@@ -355,7 +355,7 @@ def messages_left(recipe):
 # GET /api/recipes/recent: the user's 10 newest recipes, for the "Recent recipes" list in the sidebar.
 class RecentRecipesView(APIView):
     def get(self, request):
-        recipes = GeneratedRecipe.objects.filter(user=request.user)[:RECENT_SIZE]
+        recipes = GeneratedRecipe.objects.filter(user=request.user).order_by('-generated_at', '-id')[:RECENT_SIZE]
         return Response({
             'results': [
                 {'id': r.id, 'title': r.title, 'meal': r.meal_type, 'generatedAt': r.generated_at.isoformat()}
